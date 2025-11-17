@@ -353,82 +353,130 @@ To facilitate real-time interaction with robotic hardware, the completed percept
 \label{fig: grasp_result}
 \end{figure}
 
+% starting visual ros2
+\subsubsection*{ROS2 Service-Oriented Integration}
 
-\textbf{ROS2 Service Node Integration} \\
+With the individual perception modules completed, the system was refactored into a modular ROS2 service-oriented architecture. All earlier standalone Python modules were migrated into \texttt{rclpy}-based nodes, with image conversion handled through \texttt{cv\_bridge}. This design allows each perception capability—segmentation, classification, grasp estimation, metric conversion, and scene reasoning—to be invoked on demand while maintaining real-time compatibility within robotic control loops.
 
-With the core perception modules completed, the next phase of development focused on transforming the entire system into a fully modular ROS2 service-oriented architecture. All functionality previously written in standalone Python scripts was migrated into ROS2 nodes using rclpy, with image conversion handled through \texttt{cv\_bridge}. This redesign ensures that each step of the pipeline is callable on demand and compatible with real-time robotic control.
+\paragraph{Node Overview}
+The perception stack consists of five ROS2 nodes. SAM provides the initial segmentation, CLIP performs semantic understanding, GraspNet computes grasp poses, the scene-understanding module derives relational context, and the pixel-to-real module converts pixel coordinates into world coordinates using depth images.
 
-\textbf{Overview of Nodes} 
 
+
+\begin{table}[h!]
+\centering
+\caption{ROS2 perception nodes and their core functionalities.}
 \begin{tabular}{|l|l|p{7cm}|}
 \hline
 \textbf{Node} & \textbf{Role} & \textbf{Key Topics / Services} \\
 \hline
-simple\_sam\_detector & Detects objects & \texttt{/vision/run\_pipeline}, \texttt{/vision/detect\_objects}, \texttt{/vision/show\_depth\_image}, \texttt{/vision/sam\_detections} \\
-clip\_classifier & Classifies detected regions using CLIP & \texttt{/vision/classify\_all}, \texttt{/vision/classify\_bb}, subscribes to \texttt{/vision/sam\_detections} \\
-graspnet\_detector & Estimates grasp poses for detected objects & \texttt{/vision/detect\_grasp}, \texttt{/vision/detect\_grasp\_bb}, subscribes to \texttt{/vision/sam\_detections} \\
-scene\_understanding & Analyzes scene relationships and context & \texttt{/vision/understand\_scene}, subscribes to \texttt{/vision/sam\_detections} \\
+
+simple\_sam\_detector &
+Object segmentation&
+\texttt{/vision/run\_pipeline}, \texttt{/vision/detect\_objects},
+\texttt{/vision/show\_depth\_image},\\
+& & publishes \texttt{/vision/sam\_detections} \\
 \hline
-\end{tabular} \\
 
-\textbf{Node Details} \\
+clip\_classifier &
+Zero-shot semantic classification &
+\texttt{/vision/classify\_all}, \texttt{/vision/classify\_bb},
+\texttt{/vision/find\_obj},\\
+& & subscribes to \texttt{/vision/sam\_detections} \\
+\hline
 
-\textbf{1. SAM Detector Node (\texttt{simple\_sam\_detector})}
-Detects objects using the Segment Anything Model (SAM).
+graspnet\_detector &
+6-DoF grasp pose estimation &
+\texttt{/vision/detect\_grasp}, \texttt{/vision/detect\_grasp\_bb},\\
+& & subscribes to \texttt{/vision/sam\_detections} \\
+\hline
 
-\paragraph*{Services}
+scene\_understanding &
+Relational reasoning &
+\texttt{/vision/understand\_scene}, publishes \texttt{/vision/scene\_understanding},\\
+& & subscribes to \texttt{/vision/sam\_detections} \\
+\hline
+
+pixel\_to\_real &
+Pixel-to-world coordinate conversion &
+Subscribes to \texttt{/camera/depth/image\_raw},\\
+& & service: \texttt{/vision/pixel\_to\_real} \\
+\hline
+
+\end{tabular}
+\end{table}
+
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.9\linewidth]{images/vision_service2.png}
+\caption{The complete vision pipeline from perception to reasoning. Demonstrating the progressive transformation of raw input data structured semantic understanding.}
+\label{fig: vision_service2}
+\end{figure}
+
+
+
+\paragraph{Node Descriptions}
+
+
+
+\textbf{SAM Detector Node (\texttt{simple\_sam\_detector})} \\
+Segments objects using the Segment Anything Model (SAM) and publishes bounding boxes, masks, and distance estimates.
+
 \begin{itemize}
-    \item \texttt{/vision/run\_pipeline}: Trigger full SAM pipeline and continuously publish to \texttt{/vision/sam\_detections}  
-    Example: \texttt{ros2 service call /vision/run\_pipeline std\_srvs/srv/Trigger}
-    
-    \item \texttt{/vision/detect\_objects}: Detect objects in a single frame and return bounding boxes, confidences, and distances  
-    Example: \texttt{ros2 service call /vision/detect\_objects custom\_interfaces/srv/DetectObjects}
-    
-    \item \texttt{/vision/show\_depth\_image}: Display depth camera visualization for debugging  
-    Example: \texttt{ros2 service call /vision/show\_depth\_image std\_srvs/srv/Trigger}
+    \item \texttt{/vision/run\_pipeline}: Initiates continuous segmentation and publishes detections.
+    \item \texttt{/vision/detect\_objects}: Performs single-frame inference and returns bounding boxes and distances.
+    \item \texttt{/vision/show\_depth\_image}: Displays depth frames for debugging.
 \end{itemize}
 
-\textbf{Setup}
-\begin{verbatim}
-Terminal 1: ros2 run vision simple_sam_detector
-\end{verbatim}
+\textbf{CLIP Classifier Node (\texttt{clip\_classifier})} \\
+Performs zero-shot semantic classification on SAM regions.
 
-\subsubsection*{2. CLIP Vision Classifier Node (\texttt{clip\_classifier})}
-Classifies image regions using the CLIP model.
 
-\paragraph*{Services}
 \begin{itemize}
-    \item \texttt{/vision/classify\_all}: Classify the entire camera frame  
-    Example: \texttt{ros2 service call /vision/classify\_all std\_srvs/srv/Trigger}
-    
-    \item \texttt{/vision/classify\_bb}: Classify a bounding box region  
-    Example: \texttt{ros2 service call /vision/classify\_bb custom\_interfaces/srv/ClassifyBBox "\{x1:100, y1:100, x2:200, y2:300\}"}
-    
-    \item \texttt{/vision/run\_pipeline}: Subscribes to \texttt{/vision/sam\_detections} and automatically classifies regions
+    \item \texttt{/vision/classify\_all}: Classifies the entire frame.
+    \item \texttt{/vision/classify\_bb}: Classifies a user-specified bounding box.
+    \item \texttt{/vision/find\_obj}: Given a text label (e.g., ``red cube''), returns the bounding box of the best-matching detected object.
 \end{itemize}
 
-\subsubsection*{3. GraspNet Detector Node (\texttt{graspnet\_detector})}
-Estimates grasp poses for detected objects.
+\textbf{GraspNet Detector Node (\texttt{graspnet\_detector})} \\
+Computes 6-DoF grasp configurations for each SAM detection.
 
-\paragraph*{Services}
+
 \begin{itemize}
-    \item \texttt{/vision/detect\_grasp}: Compute grasp poses for all detected objects
-    \item \texttt{/vision/detect\_grasp\_bb}: Compute grasp pose within a specific bounding box
-    \item \texttt{/vision/run\_pipeline}: Subscribes to \texttt{/vision/sam\_detections} and runs grasp detection automatically
+    \item \texttt{/vision/detect\_grasp}: Computes grasp poses for all objects.
+    \item \texttt{/vision/detect\_grasp\_bb}: Computes grasp for a specified bounding box.
 \end{itemize}
 
+\textbf{Scene Understanding Node (\texttt{scene\_understanding})} \\
+Infers spatial relationships such as adjacency, support, containment, and relative distance using SAM detections and geometry.
 
-\textbf{4. Scene Understanding Node (\texttt{scene\_understanding})}
-Analyzes spatial relationships and scene context.
 
-\textbf{Services and Publications}
 \begin{itemize}
-    \item \texttt{/vision/understand\_scene}: Provides scene-level understanding
-    \item \texttt{/vision/run\_pipeline}: Subscribes to \texttt{/vision/sam\_detections} and executes full scene analysis
-    \item Publishes: \texttt{/vision/scene\_understanding} (\texttt{SceneUnderstanding} message)
+    \item \texttt{/vision/understand\_scene}: Returns a structured relational graph of the scene.
 \end{itemize}
 
+\textbf{Pixel-to-Real Conversion Node (\texttt{pixel\_to\_real})} \\
+This utility node converts 2D pixel coordinates into 3D real-world coordinates using the depth camera’s intrinsic matrix.
+\begin{itemize}
+    \item \texttt{/vision/pixel\_to\_real}: Input: pixel coordinates $(u, v)$; Output: $(x, y, z)$ world coordinates.
+\end{itemize}
 
+The node continuously subscribes to \texttt{/camera/depth/image\_raw} to maintain up-to-date depth information for conversions.
+
+
+% \begin{figure}[h]
+% \centering
+% \includegraphics[width=\linewidth]{images/vision_service3.png}
+% \caption{run_pipeline service flowchart illustrating the sequential execution of perception modules}
+% \label{fig:vision_service3}
+% \end{figure}
+
+Additionally, \texttt{/vision/run\_pipeline} is a message-based service that triggers the execution of the entire perception pipeline in sequence. When called, it invokes SAM segmentation, CLIP classification (including \texttt{/vision/find\_obj}), GraspNet grasp estimation, scene understanding, and pixel-to-real conversion automatically.
+
+
+
+% End session on visual 
 \subsubsection{Planning}
 
 \begin{figure}[h]
@@ -905,7 +953,7 @@ The roles and duties of this project revolve around the four main features. Each
 
 \subsection{Vision}
 
-Vision pipeline was evaluated in simulation using Gazebo across 10 distinct worlds, each containing 5 objects. The evaluation focused on object detection, classification, grasp pose estimation, and scene understanding, as well as the accuracy of pixel-to-real-world coordinate conversion. The testing procedure for each module is as follows:
+Vision pipeline was evaluated in simulation using Gazebo across 5 distinct worlds, each containing 5 objects. The evaluation focused on object detection, classification, grasp pose estimation, and scene understanding, as well as the accuracy of pixel-to-real-world coordinate conversion. The testing procedure for each module is as follows:
 
 \begin{itemize}
     \item \textbf{SAM (Segment Anything Model)}: Each object in the world was segmented, and results were recorded in terms of bounding box coordinates, detection confidence, and Average Precision (AP) for IoU $\geq 0.5$.
@@ -931,7 +979,62 @@ For each world:
 
 \subsubsection{Experimentation and Evaluation}
 
+\begin{table}[h!]
+\centering
+\caption{Summary of vision-module benchmark results (5 worlds $\times$ 5 objects = 25 objects)}
+\label{tab:vision-eval}
+\begin{tabular}{lcc}
+\hline
+\textbf{Model} & \textbf{Benchmark (metric)} & \textbf{Result} \\
+\hline
+SAM (segmenter) & AP (IoU $\ge$ 0.5) & $0.7408$ \\
+CLIP (region classifier) & Top-1 Accuracy (TOP1 / ALL) & $0.85$ \\
+GraspNet (grasp proposal) & Quality Score (Q) & $0.746$ \\
+Scene understanding & Spatial Accuracy (Corrected Relation/ Total) & $0.98$ \\
+Pixel-to-Real Service & RMSE (meters) & $0.05365$ \\
+\hline
+\end{tabular}
+\end{table}
 
+The vision pipeline was evaluated on five distinct Gazebo worlds, each populated with five unique objects (25 object instances total). For each object we ran the perception stack end-to-end (SAM $\rightarrow$ CLIP $\rightarrow$ GraspNet $\rightarrow$ Scene module) and aggregated per-object scores into the single summary shown in Table~\ref{tab:vision-eval}. Below we explain each metric, how it was computed, and why it was chosen.
+
+\paragraph{SAM — Average Precision (AP) at IoU $\ge$ 0.5.}
+We report region-level Average Precision computed using a single IoU threshold of 0.5 (the PASCAL VOC–style AP@0.5 convention). For each predicted mask we compute the Intersection-over-Union (IoU) with the ground-truth mask:
+\[
+\mathrm{IoU} = \frac{|\text{Prediction} \cap \text{GroundTruth}|}{|\text{Prediction} \cup \text{GroundTruth}|}.
+\]
+A prediction is considered a true positive when IoU $\ge 0.5$; precision–recall curves are constructed across confidence thresholds and AP is the area under the precision–recall curve for the instance class. The reported $0.7408$ is the mean AP over all 25 object instances. This AP formulation follows established segmentation/detection protocols and is consistent with how promptable segmentation models (e.g., SAM) are typically evaluated. \cite{kirillov2023segment,padilla2021metrics}
+
+\paragraph{CLIP — Top-1 Accuracy.}
+CLIP is used to assign a semantic label (region caption/class) to each SAM proposal. We evaluate classification accuracy in the standard Top-1 sense: the model's highest-scoring label is compared to the ground-truth label; Top-1 accuracy is the fraction of proposals for which this highest score equals the ground truth. The reported value ($0.85$) is computed as
+\[
+\text{Top-1 Acc.} = \frac{\#\{\text{correct top predictions}\}}{\#\{\text{evaluated proposals}\}}
+\]
+over the 25 objects. Using CLIP for region classification leverages its zero-shot image–text embedding ability and this metric directly measures semantic assignment fidelity. \cite{radford2021clip,openai_clip}
+
+\paragraph{GraspNet — Quality Score (Q).}
+For grasping we used GraspNet-style grasp proposals and evaluated a per-proposal \emph{Quality Score} (Q). In practice Q is a consolidated score that reflects the predicted grasp's feasibility under geometric and collision constraints (for example: antipodal/force-closure geometry, clearance from collisions, and stability heuristics used in the dataset/simulator). During evaluation we rank proposals by their Q value and compute the average Q over the top-K proposals per object (K chosen to match the GraspNet evaluation protocol used in our simulator). The reported aggregate score $0.746$ is the mean Q across 25 objects. This metric correlates with practical grasp success probability when proposals are executed in simulator/hardware and follows the GraspNet benchmarking philosophy. \cite{fang2020graspnet,wu2024grasping}
+
+\paragraph{Scene understanding — Spatial Accuracy.}
+Spatial Accuracy measures how often the scene module correctly predicts metric spatial relationships (e.g., object coordinates relative to a world origin, and pairwise spatial predicates such as \texttt{left-of}, \texttt{on-top-of} within the chosen tolerance). Concretely, we evaluate:
+\begin{itemize}
+  \item \textbf{Positional error}: Euclidean distance between predicted object centroid and ground-truth centroid in world coordinates; a prediction is \emph{spatially correct} when the error $\leq$ a task threshold (here, 2\,cm).
+  \item \textbf{Relational correctness}: fraction of pairwise relation queries (e.g., ``is A left of B'') answered correctly.
+\end{itemize}
+Spatial Accuracy reported ($0.98$) is the fraction of all positional + relation checks that passed. This combined metric matches recent 3D spatial understanding benchmarks which evaluate both metric and relational components. \cite{daxberger2025mmspatial,zhao2023vsd}
+
+
+\paragraph{Pixel-to-Real Service — RMSE (Root Mean Square Error).}
+The Pixel-to-Real module converts 2D pixel coordinates and depth values into 3D world coordinates using the camera intrinsic model. We evaluate accuracy using RMSE between predicted world points $\hat{p}_i$ and ground-truth world points $p_i$:
+\[
+\mathrm{RMSE} = 
+\sqrt{
+\frac{1}{N} \sum_{i=1}^{N} 
+\left\| \hat{p}_i - p_i \right\|^{2}
+}.
+\]
+This metric is widely used for depth-based 3D reconstruction and camera geometry evaluation. \cite{yin2021learning,teed2020raft3d}  
+Our Pixel-to-Real service achieves an RMSE of \textbf{0.05365\,m}, demonstrating high accuracy in metric projection and depth-to-world mapping across all worlds.
 
 
 \subsection{Speech}
@@ -1113,8 +1216,7 @@ Overall, the hardware system establishes a robust bridge between the simulated d
 
 \subsection{Vision}
 
-Despite the successful integration of the Image Processing pipeline, several limitations remain. 
-
+Despite the effective implementation of the Image Processing pipeline, multiple limitations remain.
 Currently, the pipeline relies on RGB-D cameras with known calibration and a fixed mounting level. Variations in camera tilt, slope, or unexpected viewpoints can adversely affect the accuracy of SAM segmentation and GraspNet grasp estimation. Objects that are heavily occluded, overlapping, or partially outside the camera's field of view may be detected incorrectly or not at all, leading to reduced reliability in cluttered or dynamic environments. 
 
 The system also assumes objects are rigid and have simple geometries. Deformable, reflective, or transparent objects can produce inaccurate depth readings, which may propagate errors to CLIP classification, grasp pose estimation, and scene understanding. GraspNet performance, in particular, is sensitive to noisy depth data, and unusual object orientations or slopes can significantly reduce the quality score and success rate of predicted grasps. 
