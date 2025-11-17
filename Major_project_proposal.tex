@@ -548,11 +548,9 @@ The project is structured around four primary technical area of concentration ex
 \subsection{Current Timeline}
 
 \subsubsection{Image Processing}
-
-The development of the image processing module is proceeding on schedule and has entered the system integration phase. Core functionalities, including image acquisition, preprocessing, segmentation, and scene understanding have been successfully implemented and validated through controlled experiments. The development has now entered the integration phase, focusing on seamless communication with the overall robotic framework. Ongoing work involves synchronizing image data streams with the motion planning and control modules to enable end-to-end perception-driven operation.
+The development of the Image Processing pipeline has been successfully completed.Core functionalities, including object detection and segmentation using the Segment Anything Model (SAM), object classification with CLIP, grasp synthesis via GraspNet, and scene understanding through spatial reasoning, have been fully implemented and integrated into a modular ROS2 architecture. Each stage of the pipeline has been tested using gazebo simulation, demonstrating reliable performance in identifying tools.
 
 \subsubsection{Speech Processing}
-
 The development of the Automatic Speech Recognition (ASR) module has been successfully completed. Core functionalities, including live audio capture, real-time transcription, and ROS2 publishing, have been fully implemented and ready for validation through both controlled and real-world testing. The system introduces new capabilities such as an \textbf{emergency stop command} for safety assurance and a \textbf{deactivation word} mechanism that allows users to explicitly signal when to send the recognized sentence to the planning node, replacing the previous time-based approach. The ASR system has been successfully integrated with the planning node, enabling seamless and responsive speech-driven robot manipulation. This integration marks the completion of the ASR development phase and establishes a reliable communication interface for future extensions involving multimodal interaction and autonomous task execution.
 
 \subsubsection{Planning}
@@ -907,6 +905,35 @@ The roles and duties of this project revolve around the four main features. Each
 
 \subsection{Vision}
 
+Vision pipeline was evaluated in simulation using Gazebo across 10 distinct worlds, each containing 5 objects. The evaluation focused on object detection, classification, grasp pose estimation, and scene understanding, as well as the accuracy of pixel-to-real-world coordinate conversion. The testing procedure for each module is as follows:
+
+\begin{itemize}
+    \item \textbf{SAM (Segment Anything Model)}: Each object in the world was segmented, and results were recorded in terms of bounding box coordinates, detection confidence, and Average Precision (AP) for IoU $\geq 0.5$.
+    
+    \item \textbf{CLIP Classifier}: Detected object regions were classified using the CLIP model. Performance metrics included predicted labels, confidence scores, and Top-1 accuracy for each object.
+    
+    \item \textbf{GraspNet}: For each detected object, the system estimated grasp poses. Recorded metrics included position $(x, y, z)$, orientation $(x, y, z, w)$, quality score $Q$, grasp width, approach angle, and overall success rate (SR) in simulation grasps.
+    
+    \item \textbf{Scene Understanding}: The module evaluated object relations and spatial context. Metrics recorded included the predicted relation list, spatial accuracy, and adjacency accuracy between objects.
+    
+    \item \textbf{Pixel-to-Real Conversion}: Depth and RGB data were used to convert pixel coordinates to real-world coordinates. Accuracy was measured using Root Mean Square Error (RMSE) against ground-truth positions in Gazebo.
+\end{itemize}
+
+\paragraph{Evaluation Procedure}
+For each world:
+\begin{enumerate}
+    \item Spawn 5 objects with randomized positions and orientations.
+    \item Run the \texttt{/vision/run\_pipeline} service once to process the entire scene.
+    \item Collect output from each module (SAM, CLIP, GraspNet, Scene Understanding) and log metrics.
+    \item Compare pixel-to-real coordinates against ground truth for RMSE computation.
+    \item Repeat for all 10 worlds to obtain aggregate performance statistics.
+\end{enumerate}
+
+\subsubsection{Experimentation and Evaluation}
+
+
+
+
 \subsection{Speech}
 
 The ASR system has been fully integrated as a ROS2 node, providing real-time speech-to-text functionality, deactivation word recognition, and an emergency stop mechanism. The node continuously captures live audio streams, transcribes commands in real time, and publishes recognized sentences to the planning node only if the sentence ends with the deactivation word ``execute.'' The emergency stop allows immediate halting of robot motion with the command ``STOP'' and can be deactivated using the word ``OKAY.'' This workflow ensures responsive, safe, and controlled interaction between the human operator and the robot.
@@ -1085,6 +1112,18 @@ Overall, the hardware system establishes a robust bridge between the simulated d
 \section{Limitations and Future Plans}
 
 \subsection{Vision}
+
+Despite the successful integration of the Image Processing pipeline, several limitations remain. 
+
+Currently, the pipeline relies on RGB-D cameras with known calibration and a fixed mounting level. Variations in camera tilt, slope, or unexpected viewpoints can adversely affect the accuracy of SAM segmentation and GraspNet grasp estimation. Objects that are heavily occluded, overlapping, or partially outside the camera's field of view may be detected incorrectly or not at all, leading to reduced reliability in cluttered or dynamic environments. 
+
+The system also assumes objects are rigid and have simple geometries. Deformable, reflective, or transparent objects can produce inaccurate depth readings, which may propagate errors to CLIP classification, grasp pose estimation, and scene understanding. GraspNet performance, in particular, is sensitive to noisy depth data, and unusual object orientations or slopes can significantly reduce the quality score and success rate of predicted grasps. 
+
+Scene Understanding currently infers spatial relationships based solely on detected bounding boxes and object centroids. Complex interactions, fine-grained occlusions, or non-standard arrangements may result in incomplete or inaccurate relational graphs. Furthermore, the pipeline does not yet incorporate temporal consistency, meaning rapid movements or real-time dynamic changes in the scene can produce unstable predictions. 
+
+Finally, while pixel-to-real conversion provides reasonable accuracy in controlled simulations, it remains sensitive to camera calibration errors, sensor noise, and depth image quantization. RMSE can increase when objects are placed at extreme angles, distances, or outside the ideal sensor range. 
+
+For future development, these limitations could be addressed by incorporating multi-view or higher-resolution sensors, improving depth filtering and denoising, extending GraspNet and scene understanding models to handle irregular objects, and integrating temporal smoothing or tracking to enhance robustness in dynamic real-world scenarios. These improvements aim to increase perception reliability, grasp success, and overall system usability in complex and unstructured environments.
 
 \subsection{Speech}
 Despite the successful integration of the ASR module, several limitations remain. Currently, the system supports only one deactivation word ``EXECUTE'' which must appear at the end of a spoken command for it to be sent to the planning node. Commands without this keyword are ignored, which can reduce flexibility in natural speech interactions. Similarly, the emergency stop feature currently recognizes only the word ``STOP'' to immediately halt robot operations, and can only be deactivated by saying ``OKAY.'' While these constraints ensure reliability and safety, they also limit the diversity of voice inputs the system can handle.
