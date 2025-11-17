@@ -315,7 +315,7 @@ By combining SAM segmentation with our refinement step and CLIP classification, 
 
 After implementing the segmentation and classification stages, we successfully completed the third and fourth stages of the vision pipeline: \textbf{grasp synthesis} and \textbf{scene understanding}. These modules mark a major step toward an end-to-end visual reasoning system capable of supporting robotic manipulation and navigation. \
 
-\textbf{Grasp Synthesis} \
+\textbf{Grasp Synthesis} \\
 The grasp synthesis stage was implemented using the \textbf{GraspNet} framework~\cite{hanwen2024_grasp}, which predicts 6-DoF grasp configurations for segmented objects. As our depth camera has not yet arrived, we used curated RGB images from online sources combined with synthetic depth approximations to evaluate the performance of the complete perception pipeline. Each segmented region from SAM was converted into an object-centric point cloud and passed to GraspNet for grasp prediction. Despite the lack of real-world depth data, the synthesized pipeline demonstrated reliable grasp candidate generation, particularly for well-defined tools such as screwdrivers, hammers, and wrenches.
 
 \begin{figure}[htbp]
@@ -334,7 +334,7 @@ The grasp synthesis stage was implemented using the \textbf{GraspNet} framework~
 \end{figure}
 
 
-\textbf{Scene Understanding} \
+\textbf{Scene Understanding} \\
 To extend the pipeline beyond individual object recognition, we implemented a scene understanding module that enables spatial reasoning between objects. By leveraging object centroids and bounding box coordinates derived from the segmentation and classification stages, the system can describe relative spatial relationships such as “the screwdriver is on the right of the pliers” or “the wrench is above the hammer.” This functionality was further enhanced using a lightweight Vision-Language Model (VLM) that supports contextual reasoning, allowing the robot to infer object grouping and hierarchical arrangements within a workspace.
 
 \begin{figure}[htbp]
@@ -354,7 +354,79 @@ To facilitate real-time interaction with robotic hardware, the completed percept
 \end{figure}
 
 
-In the upcoming phase, we will migrate the system to \textbf{ROS2} to enhance communication efficiency, scalability, and real-time performance across distributed nodes. Once the depth camera arrives, we will replace the synthetic image data with live RGB-D inputs to improve the accuracy of grasp synthesis and spatial reasoning. Additionally, we plan to refine image preprocessing and depth camera calibration to achieve higher visual accuracy, thereby simplifying path planning and manipulation tasks for the robot.
+\textbf{ROS2 Service Node Integration} \\
+
+With the core perception modules completed, the next phase of development focused on transforming the entire system into a fully modular ROS2 service-oriented architecture. All functionality previously written in standalone Python scripts was migrated into ROS2 nodes using rclpy, with image conversion handled through \texttt{cv\_bridge}. This redesign ensures that each step of the pipeline is callable on demand and compatible with real-time robotic control.
+
+\textbf{Overview of Nodes} 
+
+\begin{tabular}{|l|l|p{7cm}|}
+\hline
+\textbf{Node} & \textbf{Role} & \textbf{Key Topics / Services} \\
+\hline
+simple\_sam\_detector & Detects objects & \texttt{/vision/run\_pipeline}, \texttt{/vision/detect\_objects}, \texttt{/vision/show\_depth\_image}, \texttt{/vision/sam\_detections} \\
+clip\_classifier & Classifies detected regions using CLIP & \texttt{/vision/classify\_all}, \texttt{/vision/classify\_bb}, subscribes to \texttt{/vision/sam\_detections} \\
+graspnet\_detector & Estimates grasp poses for detected objects & \texttt{/vision/detect\_grasp}, \texttt{/vision/detect\_grasp\_bb}, subscribes to \texttt{/vision/sam\_detections} \\
+scene\_understanding & Analyzes scene relationships and context & \texttt{/vision/understand\_scene}, subscribes to \texttt{/vision/sam\_detections} \\
+\hline
+\end{tabular} \\
+
+\textbf{Node Details} \\
+
+\textbf{1. SAM Detector Node (\texttt{simple\_sam\_detector})}
+Detects objects using the Segment Anything Model (SAM).
+
+\paragraph*{Services}
+\begin{itemize}
+    \item \texttt{/vision/run\_pipeline}: Trigger full SAM pipeline and continuously publish to \texttt{/vision/sam\_detections}  
+    Example: \texttt{ros2 service call /vision/run\_pipeline std\_srvs/srv/Trigger}
+    
+    \item \texttt{/vision/detect\_objects}: Detect objects in a single frame and return bounding boxes, confidences, and distances  
+    Example: \texttt{ros2 service call /vision/detect\_objects custom\_interfaces/srv/DetectObjects}
+    
+    \item \texttt{/vision/show\_depth\_image}: Display depth camera visualization for debugging  
+    Example: \texttt{ros2 service call /vision/show\_depth\_image std\_srvs/srv/Trigger}
+\end{itemize}
+
+\textbf{Setup}
+\begin{verbatim}
+Terminal 1: ros2 run vision simple_sam_detector
+\end{verbatim}
+
+\subsubsection*{2. CLIP Vision Classifier Node (\texttt{clip\_classifier})}
+Classifies image regions using the CLIP model.
+
+\paragraph*{Services}
+\begin{itemize}
+    \item \texttt{/vision/classify\_all}: Classify the entire camera frame  
+    Example: \texttt{ros2 service call /vision/classify\_all std\_srvs/srv/Trigger}
+    
+    \item \texttt{/vision/classify\_bb}: Classify a bounding box region  
+    Example: \texttt{ros2 service call /vision/classify\_bb custom\_interfaces/srv/ClassifyBBox "\{x1:100, y1:100, x2:200, y2:300\}"}
+    
+    \item \texttt{/vision/run\_pipeline}: Subscribes to \texttt{/vision/sam\_detections} and automatically classifies regions
+\end{itemize}
+
+\subsubsection*{3. GraspNet Detector Node (\texttt{graspnet\_detector})}
+Estimates grasp poses for detected objects.
+
+\paragraph*{Services}
+\begin{itemize}
+    \item \texttt{/vision/detect\_grasp}: Compute grasp poses for all detected objects
+    \item \texttt{/vision/detect\_grasp\_bb}: Compute grasp pose within a specific bounding box
+    \item \texttt{/vision/run\_pipeline}: Subscribes to \texttt{/vision/sam\_detections} and runs grasp detection automatically
+\end{itemize}
+
+
+\textbf{4. Scene Understanding Node (\texttt{scene\_understanding})}
+Analyzes spatial relationships and scene context.
+
+\textbf{Services and Publications}
+\begin{itemize}
+    \item \texttt{/vision/understand\_scene}: Provides scene-level understanding
+    \item \texttt{/vision/run\_pipeline}: Subscribes to \texttt{/vision/sam\_detections} and executes full scene analysis
+    \item Publishes: \texttt{/vision/scene\_understanding} (\texttt{SceneUnderstanding} message)
+\end{itemize}
 
 
 \subsubsection{Planning}
