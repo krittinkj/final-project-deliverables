@@ -9,6 +9,7 @@
 \usepackage{siunitx}
 \usepackage{microtype}
 \usepackage{booktabs}
+\usepackage{makecell}
 \graphicspath{{images/}}
 
 \begin{document}
@@ -235,7 +236,7 @@ The project combines:
     \item \textbf{Symbolic AI}: Constraints enforcement to ensure executability. Path and trajectory generation.
     \item \textbf{Robotics}: A robot arm with a gripper executing precise manipulation under safe handover protocols. 
 \end{itemize}
-This neuro-symbolic hybrid design ensures adaptability, efficiency, and user transparency. \\
+This neuro-symbolic hybrid design ensures adaptability, efficiency, and user transparency.
 
 \textbf{\underline{Overall Workflow:}}
 \begin{enumerate}
@@ -271,15 +272,13 @@ This workflow provides a modular and scalable interface that allows for safe, re
 \end{figure}
 
 \subsubsection{Visual}
-We decided to implements modular vision pipeline consisting of four sequential stages: object detection and segmentation, object classification, grasp synthesis, and scene understanding. Each stage is designed to progressively enrich the robot's understanding of its environments, with the ultimate goal of enabling reliable manipulation and task executive. \\
+We decided to implements modular vision pipeline consisting of four sequential stages: object detection and segmentation, object classification, grasp synthesis, and scene understanding. Each stage is designed to progressively enrich the robot's understanding of its environments, with the ultimate goal of enabling reliable manipulation and task executive.
 
-Our exploration has focused on leveraging foundation models such as the Segment Anything Model (SAM) for segmentation and CLIPs for classification, while ensuring modularity that allows integration with grasping algorithm (e.g., GraspNet) and higher-level reasoning (e.g. Vision-Language Models for scene understanding) ~\cite{segment-anything-2023,tlac-2025,hanwen2024_grasp,scene_seg}. \\
+Our exploration has focused on leveraging foundation models such as the Segment Anything Model (SAM) for segmentation and CLIPs for classification, while ensuring modularity that allows integration with grasping algorithm (e.g., GraspNet) and higher-level reasoning (e.g. Vision-Language Models for scene understanding)~\cite{segment-anything-2023,tlac-2025,hanwen2024_grasp,scene_seg}.
 
-In this time period, we implemented and tested the first two stages of our vision pipeline: object segmentation and object classification \\
+In this time period, we implemented and tested the first two stages of our vision pipeline: object segmentation and object classification
 
-
-\textbf{Object Segmentation} \\
-
+\textbf{Object Segmentation}
 
 We used the SAM model to segment objects in tool-rich images. SAM successfully generated fine-grained masks and bounding boxes, producing over 50 detected regions per image as show in Figure ~\ref{fig: sam_pre}. 
 
@@ -330,7 +329,7 @@ The grasp synthesis stage was implemented using the \textbf{GraspNet} framework~
 \centering
 \includegraphics[width=\linewidth]{images/RGB-Dep.png}
 \caption{A synthetic RGB-Depth image generated from an online RGB source using monocular depth estimation.}
-\label{fig: grasp_result}
+\label{fig: synth_rgbd}
 \end{figure}
 
 
@@ -350,7 +349,7 @@ To facilitate real-time interaction with robotic hardware, the completed percept
 \centering
 \includegraphics[width=\linewidth]{images/pipeline_image.png}
 \caption{The complete vision pipeline from perception to reasoning. Demonstrating the progressive transformation of raw input data structured semantic and geometric understanding.}
-\label{fig: grasp_result}
+\label{fig: pipeline_image}
 \end{figure}
 
 % starting visual ros2
@@ -361,64 +360,34 @@ With the individual perception modules completed, the system was refactored into
 \paragraph{Node Overview}
 The perception stack consists of five ROS2 nodes. SAM provides the initial segmentation, CLIP performs semantic understanding, GraspNet computes grasp poses, the scene-understanding module derives relational context, and the pixel-to-real module converts pixel coordinates into world coordinates using depth images.
 
-
-
-\begin{table}[h!]
+\begin{table}[H]
 \centering
 \caption{ROS2 perception nodes and their core functionalities.}
-\begin{tabular}{|l|l|p{7cm}|}
-\hline
-\textbf{Node} & \textbf{Role} & \textbf{Key Topics / Services} \\
-\hline
-
-simple\_sam\_detector &
-Object segmentation&
-\texttt{/vision/run\_pipeline}, \texttt{/vision/detect\_objects},
-\texttt{/vision/show\_depth\_image},\\
-& & publishes \texttt{/vision/sam\_detections} \\
-\hline
-
-clip\_classifier &
-Zero-shot semantic classification &
-\texttt{/vision/classify\_all}, \texttt{/vision/classify\_bb},
-\texttt{/vision/find\_obj},\\
-& & subscribes to \texttt{/vision/sam\_detections} \\
-\hline
-
-graspnet\_detector &
-6-DoF grasp pose estimation &
-\texttt{/vision/detect\_grasp}, \texttt{/vision/detect\_grasp\_bb},\\
-& & subscribes to \texttt{/vision/sam\_detections} \\
-\hline
-
-scene\_understanding &
-Relational reasoning &
-\texttt{/vision/understand\_scene}, publishes \texttt{/vision/scene\_understanding},\\
-& & subscribes to \texttt{/vision/sam\_detections} \\
-\hline
-
-pixel\_to\_real &
-Pixel-to-world coordinate conversion &
-Subscribes to \texttt{/camera/depth/image\_raw},\\
-& & service: \texttt{/vision/pixel\_to\_real} \\
-\hline
-
+\begin{tabular}{|l|l|l|}
+    \hline
+    \thead{\textbf{Node}} & \thead{\textbf{Role}} & \thead{\textbf{Key Topics / Services}} \\
+    \hline
+    simple\_sam\_detector &  \makecell{Object segmentation}  & \makecell{\texttt{/vision/run\_pipeline}\\\texttt{/vision/detect\_objects}\\\texttt{/vision/show\_depth\_image}\\publishes \texttt{/vision/sam\_detections}} \\
+    \hline
+    clip\_classifier &  \makecell{Zero-shot semantic\\classification}  & \makecell{\texttt{/vision/classify\_all}\\\texttt{/vision/classify\_bb}\\\texttt{/vision/find\_obj}\\subscribes to \texttt{/vision/sam\_detections}} \\
+    \hline
+    graspnet\_detector &  \makecell{6-DoF grasp\\pose estimation}  & \makecell{\texttt{/vision/detect\_grasp}\\\texttt{/vision/detect\_grasp\_bb}\\subscribes to \texttt{/vision/sam\_detections}} \\
+    \hline
+    scene\_understanding &  \makecell{Relational reasoning}  & \makecell{\texttt{/vision/understand\_scene}\\publishes \texttt{/vision/scene\_understanding}\\subscribes to \texttt{/vision/sam\_detections}} \\
+    \hline
+    pixel\_to\_real &  \makecell{Pixel-to-world\\coordinate conversion}  & \makecell{Subscribes to \texttt{/camera/depth/image\_raw}\\service: \texttt{/vision/pixel\_to\_real}} \\
+    \hline
 \end{tabular}
 \end{table}
 
-
 \begin{figure}[H]
 \centering
-\includegraphics[width=0.9\linewidth]{images/vision_service2.png}
+\includegraphics[width=1.2\linewidth]{images/vision_service2.png}
 \caption{The complete vision pipeline from perception to reasoning. Demonstrating the progressive transformation of raw input data structured semantic understanding.}
 \label{fig: vision_service2}
 \end{figure}
 
-
-
 \paragraph{Node Descriptions}
-
-
 
 \textbf{SAM Detector Node (\texttt{simple\_sam\_detector})} \\
 Segments objects using the Segment Anything Model (SAM) and publishes bounding boxes, masks, and distance estimates.
