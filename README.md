@@ -10,7 +10,7 @@
 
 ---
 
-## **1. Problem, Goal, Final Target (1 slide)**
+## **1. Problem, Goal, Final Target (1 slide)** [Pooh]
 
 **Slides: 1**
 
@@ -22,7 +22,7 @@
 
 ---
 
-## **2. Application Domain & Motivation (2–3 slides)**
+## **2. Application Domain & Motivation (2–3 slides)** [Pory]
 
 **Slides: 2–3**
 
@@ -48,7 +48,7 @@
 
 ---
 
-## **4. System Requirements & Engineering Process (2 slides)**
+## **4. System Requirements & Engineering Process (2 slides)** [MB]
 
 **Slides: 2**
 
@@ -64,7 +64,7 @@
 
 ---
 
-## **5. Overall System Architecture (2 slides)**
+## **5. Overall System Architecture (2 slides)** [Kong]
 
 **Slides: 2**
 
@@ -78,7 +78,7 @@
 
 ## **6. Subsystem Results (ASR / Vision / Planning) (4–6 slides)**
 
-### 6.1 ASR Module (1–2 slides)
+### 6.1 ASR Module (1–2 slides) [Pory]
 
 **Slides: 1–2**
 
@@ -87,7 +87,7 @@
 * Limitations
 * Spectrogram or model diagram
 
-### 6.2 Vision Module (1–2 slides)
+### 6.2 Vision Module (1–2 slides) [MB]
 
 **Slides: 1–2**
 
@@ -95,7 +95,7 @@
 * Metrics/benchmark
 * Pipeline diagram
 
-### 6.3 Planning + Integration (1–2 slides)
+### 6.3 Planning + Integration (1–2 slides) [Kong]
 
 **Slides: 1–2**
 
@@ -107,7 +107,7 @@
 
 ---
 
-## **7. Simulation Setup + Hardware (1–2 slides)**
+## **7. Simulation Setup + Hardware (1–2 slides)** [Kong]
 
 **Slides: 1–2**
 
@@ -118,7 +118,7 @@
 
 ---
 
-## **8. System-Level Results (1 slide)**
+## **8. System-Level Results (1 slide)** [Kong]
 
 **Slides: 1**
 
@@ -130,7 +130,7 @@
 
 ---
 
-## **9. Demo (1 slide)**
+## **9. Demo (1 slide)** [Kong]
 
 **Slides: 1**
 
@@ -141,7 +141,7 @@
 
 ---
 
-## **10. Future Work / Improvement (1 slide)**
+## **10. Future Work / Improvement (1 slide)** [Pooh]
 
 **Slides: 1**
 
@@ -149,18 +149,6 @@
 * No speculation
 
 > *Advisor said “don’t make stuff up.”*
-
----
-
-## **11. Thank You / QA Slide (1 slide)**
-
-**Slides: 1**
-
-* No text except “Thank you” and contact info
-
-**TOTAL MAIN SLIDES: ~16–19**
-
-Fits the advisor’s target.
 
 ---
 
