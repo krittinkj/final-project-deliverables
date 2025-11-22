@@ -1,4 +1,6 @@
-# ✅ **Revised Presentation Structure (15–20 Main Slides + 20 Appendix)**
+# **Presentation Structure (15–20 Main Slides + 20 Appendix)**
+
+[Presentation Slides](https://www.canva.com/design/DAG5OLXKFVg/OVB35JjWlXyXzuyhKtpv5w/edit?utm_content=DAG5OLXKFVg&utm_campaign=designshare&utm_medium=link2&utm_source=sharebutton)
 
 ## **0. Title Slide (1 slide)**
 
