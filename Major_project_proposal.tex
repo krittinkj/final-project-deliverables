@@ -675,6 +675,78 @@ The expected outcome is a system that reduces downtime, improves safety, and sup
 The roles and duties of this project revolve around the four main features. Each feature is allocated to a team member as outlined in Table~\ref{tab:roles_responsibilities}
 
 \newpage
+\section{Limitations and Future Plans}
+
+\subsection{Vision}
+
+Despite the effective implementation of the Image Processing pipeline, multiple limitations remain.
+Currently, the pipeline relies on RGB-D cameras with known calibration and a fixed mounting level. Variations in camera tilt, slope, or unexpected viewpoints can adversely affect the accuracy of SAM segmentation and GraspNet grasp estimation. Objects that are heavily occluded, overlapping, or partially outside the camera's field of view may be detected incorrectly or not at all, leading to reduced reliability in cluttered or dynamic environments. 
+
+The system also assumes objects are rigid and have simple geometries. Deformable, reflective, or transparent objects can produce inaccurate depth readings, which may propagate errors to CLIP classification, grasp pose estimation, and scene understanding. GraspNet performance, in particular, is sensitive to noisy depth data, and unusual object orientations or slopes can significantly reduce the quality score and success rate of predicted grasps. 
+
+Scene Understanding currently infers spatial relationships based solely on detected bounding boxes and object centroids. Complex interactions, fine-grained occlusions, or non-standard arrangements may result in incomplete or inaccurate relational graphs. Furthermore, the pipeline does not yet incorporate temporal consistency, meaning rapid movements or real-time dynamic changes in the scene can produce unstable predictions. 
+
+Finally, while pixel-to-real conversion provides reasonable accuracy in controlled simulations, it remains sensitive to camera calibration errors, sensor noise, and depth image quantization. RMSE can increase when objects are placed at extreme angles, distances, or outside the ideal sensor range. 
+
+For future development, these limitations could be addressed by incorporating multi-view or higher-resolution sensors, improving depth filtering and denoising, extending GraspNet and scene understanding models to handle irregular objects, and integrating temporal smoothing or tracking to enhance robustness in dynamic real-world scenarios. These improvements aim to increase perception reliability, grasp success, and overall system usability in complex and unstructured environments.
+
+\subsection{Speech}
+Despite the successful integration of the ASR module, several limitations remain. Currently, the system supports only one deactivation word ``EXECUTE'' which must appear at the end of a spoken command for it to be sent to the planning node. Commands without this keyword are ignored, which can reduce flexibility in natural speech interactions. Similarly, the emergency stop feature currently recognizes only the word ``STOP'' to immediately halt robot operations, and can only be deactivated by saying ``OKAY.'' While these constraints ensure reliability and safety, they also limit the diversity of voice inputs the system can handle.
+
+For future development, the ASR system will be enhanced with a feedback mechanism that enables the robot to verbally confirm received commands and notify the user when tasks are completed. This interactive feedback loop aims to improve user awareness, communication transparency, and overall usability in real-world human–robot collaboration.
+\subsection{Planning}
+Despite the successful implementation and evaluation of the hierarchical planning system, several limitations remain that present opportunities for improvement in future development.
+
+\textbf{1. Limitations of the PDDL-Based Approach.}
+The most significant challenge lies in generating syntactically correct and logically consistent PDDL (Planning Domain Definition Language) files. At present, both the \texttt{domain.pddl} and \texttt{problem.pddl} files are generated entirely by a large language model. While this enables flexibility in interpreting natural language commands, it also introduces errors such as inconsistent predicates, missing type declarations, and ill-formed syntax. These issues reduce the reliability of symbolic planning, as even minor syntax errors can cause plan generation to fail.
+
+To address this, the future plan involves reducing the portion of the PDDL specification that depends on the LLM. The set of valid actions and predicates will be manually defined and validated, ensuring correctness and interpretability. Dynamic elements, such as the current state of the robot and environment, will instead be generated deterministically from live ROS2 topics and service responses. This hybrid approach aims to retain the flexibility of LLM-based interpretation while ensuring structural and syntactic integrity in the resulting PDDL files.
+
+\textbf{2. Limited Integration with Perception.}
+The current system architecture includes a dedicated \texttt{vision} node capable of providing object detection, classification, and pose estimation services. However, full integration between this perception module and the planning system has not yet been achieved. As a result, the system has primarily been evaluated on motion- and manipulation-centric tasks that do not depend on visual context.
+
+The next phase of development will focus on completing this integration, allowing the planners to reason over perceptual information and adapt plans dynamically based on the visual state of the environment. This will enable testing and evaluation on more complex, perception-dependent instructions—such as identifying, approaching, and manipulating specific objects—which more closely resemble real-world autonomous task execution scenarios.
+
+\textbf{3. Testing with Higher-Level and Abstract Commands.}
+Although preliminary experiments with abstract language commands have been conducted, broader testing is still required to evaluate robustness and adaptability. Future work will involve systematically benchmarking both the LLM-Direct and PDDL-Based approaches on abstract, multi-step, and perception-based instructions to identify the limits of current reasoning capabilities and improve high-level plan generalization.
+
+\textbf{4. Fail-Safe Mechanism.}
+Currently, the system implements an emergency stop mechanism via a predefined keyword. When the emergency stop word is detected, the robot halts all actions and remains locked in its current position until an “okay” word is received. While this prevents immediate harm, it is not fail-safe: the robot may be stopped in potentially unsafe locations, such as near obstacles or in awkward arm configurations.
+
+The planned improvement is to implement a proper fail-safe routine. In the event of an emergency stop, the robot will autonomously move to a predefined safe position (e.g., the home position) before halting, ensuring that the system is in a known, secure state. This enhancement will increase overall safety and reliability, particularly in dynamic or unstructured environments.
+
+In summary, future work will prioritize enhancing the determinism and correctness of the symbolic planning pipeline, completing the integration of the vision system, extending task complexity in experimental evaluations, and implementing robust fail-safe procedures to improve operational safety.
+
+\subsection{Simulation}
+
+Despite the successful establishment of a fully functional Gazebo Classic environment integrating perception, planning, and dynamic object attachment, several limitations remain that affect the fidelity and scope of simulation-based testing.
+
+\textbf{1. Challenges in Simulating Dynamic Gripping.}
+The primary limitation lies in Gazebo’s difficulty in accurately modeling dynamic gripping interactions. Although the IFRA Link Attacher Plugin enables attachment and detachment through service calls, it does not replicate real physical grasping forces or friction-based constraints. Achieving realistic gripping requires highly precise tuning of contact parameters, collision surfaces, and joint properties across multiple Gazebo components. In practice, these configurations are complex, brittle, and sensitive to small variations in model setup. As a result, while the grasping pipeline functions at a logical level, it does not reliably emulate real-world gripping behavior.
+
+A contributing factor is the simplified collision geometries of many simulation objects. Thin or irregularly shaped tools cannot be represented with sufficiently detailed collision meshes without causing instability or excessive computation. This makes accurate grasp testing, particularly for small engineering parts, inherently unreliable in the simulation environment.
+
+Looking forward, simulation will continue to play a key role in verifying path planning, motion execution, perception processing, and non-contact task behaviors. However, due to the inherent limitations in accurately simulating gripping, the future plan is to perform all grasping-related experiments using the physical UR5 system. 
+
+\subsection{Hardware}
+
+Despite the successful establishment of a stable and reproducible hardware execution environment, several limitations remain that currently constrain the full capabilities of the system. Addressing these limitations is essential for enabling perception-driven tasks and ensuring reliable operation of the hardware platform in real-world conditions.
+
+\textbf{1. Incomplete Vision Hardware Integration.}  
+The current hardware setup lacks a depth camera, which prevents the system from fully integrating the perception pipeline that is already operational in simulation. 
+
+The future plan is to complete the procurement of a depth camera before the beginning of the second semester. Once acquired, the camera will be mounted, calibrated, and integrated with the existing ROS2 perception stack to enable consistent visual feedback in both simulated and real environments.
+
+\textbf{2. Network Constraints and Missing WiFi Support.}  
+The system currently relies on internet connectivity to perform API calls used by several components. However, the workstation used for the hardware setup is missing a functioning WiFi driver, preventing wireless access to the internet.
+
+In simulation, this issue was circumvented by using a LAN connection for internet access. In the hardware configuration, however, the LAN port must be reserved for Ethernet communication with the UR3e control box, making simultaneous robot control and internet access infeasible.
+
+To resolve this, the future plan is to install or troubleshoot the appropriate WiFi driver, restoring wireless connectivity. This will allow the system to maintain continuous access to required online services while ensuring a dedicated wired link for real-time robot communication.
+
+In summary, future work on the hardware system will focus on integrating a physical depth camera to enable real-world perception and resolving WiFi connectivity issues to support required API-dependent components. These improvements will ensure a more capable, flexible, and perception-enabled hardware platform for the next phase of the project.
+
+\newpage
 \bibliographystyle{IEEEtran}
 \bibliography{ref}
 
