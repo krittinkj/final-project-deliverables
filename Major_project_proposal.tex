@@ -254,78 +254,93 @@ This neuro-symbolic hybrid design ensures adaptability, efficiency, and user tra
 
 \newpage
 \section{Project Planning}
-The project is structured around four primary technical area of concentration exluding any relevant paperwork tasks. These align seamlessly with the core enhancements, which will all be implemented in parallel: \textbf{image processing, speech processing, planning algorithms, and robotic arm integration}.  The planned timeline is structured into weekly milestones to ensure iterative progress and early validation 
+The project is structured around four primary technical area of concentration exluding any relevant paperwork tasks. These align seamlessly with the core enhancements, which will all be implemented in parallel: \textbf{image processing, speech processing, planning algorithms, and robotic arm integration}. The planned timeline is structured into weekly milestones to ensure iterative progress and early validation
 
 \begin{figure}[htbp]
-    \centering
-    \includegraphics[width=0.8\linewidth]{images/Gantt_chart(2).png}
-    \caption{A proposed project timeline scheduled for the project’s implementation in this semester}
-    \label{fig:gantt-chart}
+\centering
+\includegraphics[width=\linewidth]{images/gantt_chart_sem_2.png}
+\caption{A proposed project timeline scheduled for the project’s implementation in this semester}
+\label{fig:gantt-chart}
 \end{figure}
 
 \subsection{Image Processing}
 [2 Weeks] Procure depth camera and camera stand
 \begin{itemize}
-    \item A literature review and exploration of existing approaches will be conducted to identify suitable image processing methods for robotic applications.
+\item Identify suitable depth camera specifications based on workspace size, required accuracy, and compatibility with the existing system.
+\item Procure and assemble the depth camera and adjustable camera stand for stable mounting.
 \end{itemize}
 [2 Weeks] Integrate depth camera with system
 \begin{itemize}
-    \item Based on the research findings, the team will decide on the most promising method to pursue further development.
+\item Install and configure camera drivers and SDKs within the system environment.
+\item Validate depth and RGB data acquisition and ensure reliable data streaming.
 \end{itemize}
 [9 Weeks] Testing and troubleshooting
 \begin{itemize}
-    \item The chosen method will be implemented, with iterative testing to verify accuracy, robustness, and suitability for integration with the robot system.
+\item Develop and refine perception pipelines for object detection, localization, and pose estimation.
+\item Perform iterative testing under varying lighting and workspace conditions to improve robustness.
 \end{itemize}
 [4 Weeks] Evaluation and benchmarking
 \begin{itemize}
-    \item The implemented solution will be connected to the overall system, ensuring compatibility and real-time performance with the robotic platform.
+\item Quantitatively evaluate perception accuracy and latency.
+\item Benchmark performance against task requirements for real-time robotic manipulation.
 \end{itemize}
+
 \subsection{Speech Processing}
 [2 Weeks] Procure microphone and needed hardware
 \begin{itemize}
-    \item A comprehensive study on speech-to-command systems will be carried out to identify feasible methods for tool-handling tasks.
+\item Select and procure a microphone suitable for speech capture in a lab environment.
+\item Verify hardware compatibility and audio input quality.
 \end{itemize}
 [4 Weeks] Implement TTS and enhancement features
 \begin{itemize}
-    \item The most effective speech processing model or framework will be selected after evaluating feasibility, latency, and accuracy.
+\item Implement text-to-speech pipeline for bidirectional interaction.
+\item Apply noise reduction and audio preprocessing to improve recognition accuracy.
 \end{itemize}
 [9 Weeks] Testing and troubleshooting
 \begin{itemize}
-    \item The selected method will be developed into a working module, with error handling and adaptability to diverse inputs.
+\item Test speech recognition across different speakers and command variations.
+\item Improve error handling, command disambiguation, and response consistency.
 \end{itemize}
 [4 Weeks] Evaluation and benchmarking
 \begin{itemize}
-    \item The module will be integrated into the robot system to ensure smooth operation, including communication between the speech module and task-planning system.
+\item Measure command recognition accuracy and response latency.
+\item Evaluate system usability in continuous human–robot interaction scenarios.
 \end{itemize}
+
 \subsection{Planning Algorithm}
 [2 Weeks] Complete integration of system with hardware
 \begin{itemize}
-    \item A review of different approaches and existing planning algorithms will be conducted to identify suitable architectures.
+\item Establish communication interfaces between perception modules, planning modules, and hardware components.
+\item Validate end-to-end data flow.
 \end{itemize}
 [4 Weeks] Enhance planning algorithm
 \begin{itemize}
-    \item Candidate techniques will be compared, and the optimal method will be chosen for development.
+\item Extend and improve the planning framework.
 \end{itemize}
 [9 Weeks] Testing and troubleshooting
 \begin{itemize}
-    \item The selected approach will be implemented with an emphasis on ensuring symbolic reasoning and adaptability to real-world tasks.
+\item Test the planner across diverse task scenarios and edge cases.
+\item Refine decision-making logic to handle incomplete or uncertain inputs.
 \end{itemize}
 [4 Weeks] Evaluation and benchmarking
 \begin{itemize}
-    \item The algorithm will be integrated into the system to handle planning tasks, translating perception (image/speech) into robotic execution commands.
+\item Evaluate planning success rate, adaptability, and execution efficiency.
+\item Benchmark planning performance in conjunction with perception and speech modules.
 \end{itemize}
+
 \subsection{Interface with Robot Arm}
 [5 Weeks] Integrating with actual hardware and UR arm
 \begin{itemize}
-    \item A dedicated library will be created to enable seamless communication with the UR robotic arm.
+\item Improve interfaces for commanding the UR robotic arm.
 \end{itemize}
 [9 Weeks] Testing and troubleshooting
 \begin{itemize}
-    \item Virtual simulations will be performed to verify system stability and safety before real-world trials.
+\item Perform controlled physical experiments to ensure safe and reliable operation.
 \end{itemize}
 [4 Weeks] Evaluation and benchmarking
 \begin{itemize}
-    \item Additional supporting hardware will be tested and interfaced to ensure full robotic tool-handling capabilities.
+\item Evaluate precision, repeatability, and task completion time.
+\item Assess overall system performance in real-world tool-handling scenarios.
 \end{itemize}
 
 \newpage
