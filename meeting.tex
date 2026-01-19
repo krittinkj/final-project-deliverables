@@ -1,0 +1,122 @@
+\documentclass[12pt]{article}
+\usepackage{siunitx}
+
+\begin{document}
+
+\section*{Internal Team Meeting Agenda: Metrics \& Project Alignment}
+
+\subsection*{Meeting Objectives}
+\begin{itemize}
+    \item Align the team on \textbf{what exactly we are testing} in the project
+    \item Define \textbf{clear, measurable metrics} (KPIs) for both software and hardware components
+    \item Establish \textbf{minimum passing criteria and failure conditions}
+    \item Identify \textbf{existing benchmarks and prior work} to ground our evaluation
+    \item Agree on a concrete \textbf{short-term action plan} for the next week
+\end{itemize}
+
+\subsection*{1. Project Goal Re-alignment}
+\begin{itemize}
+    \item Restate the core goal of the second semester project
+    \item Clarify a measurable goal for the overall system:
+    \begin{itemize}
+      \item Objective from first semester:
+      To demonstrate successful end-to-end handover, the system must integrate language understanding, symbolic planning, perception, and grasping into a reliable pipeline. Recent studies show that robot-to-human tool handover can reach around 92.5\% success in simulation for construction tools~\cite{iaarc2025_handover}, while sim-to-real grasping frameworks report 90--97\% success depending on object familiarity~\cite{mogpe2022},\cite{grasping2023}. Performance is typically lower for novel or cluttered settings, highlighting the importance of generalization.  
+
+      Timing benchmarks suggest that simple object handovers can be completed in 8--10 seconds~\cite{handover2024_fast}, though more complex engineering tools may reasonably require up to 15 seconds. Based on these findings, this project defines its main performance goal as achieving \textbf{$\geq90\%$ success over 60–80 trials}, with \textbf{completion within 15 seconds} and \textbf{minimal disturbance} $\leq\SI{2}{\centi\meter}$ to non-target tools.
+    \end{itemize}
+
+\end{itemize}
+
+\subsection*{2. Define the Final System-Level Test}
+\begin{itemize}
+    \item Describe the \textbf{final end-to-end task} the system must perform
+    \item Identify real-world inspired task scenarios to benchmark against
+    \item Discuss:
+    \begin{itemize}
+        \item What success looks like
+        \item What constitutes a clear failure
+    \end{itemize}
+    \item Decide on observable outputs for evaluation
+\end{itemize}
+
+\subsection*{3. Metrics and KPIs Definition}
+\textbf{Discussion focus: be specific, measurable, and benchmarked}
+\begin{itemize}
+    \item Performance metrics:
+    \begin{itemize}
+        \item Task completion time
+        \item Planning latency
+        \item Execution success rate
+    \end{itemize}
+    \item Accuracy metrics:
+    \begin{itemize}
+        \item Vision perception accuracy
+        \item Correctness of generated PDDL
+    \end{itemize}
+    \item Robustness metrics:
+    \begin{itemize}
+        \item Failure recovery rate
+        \item Sensitivity to perception errors
+    \end{itemize}
+    \item Define:
+    \begin{itemize}
+        \item Minimum passing criteria
+        \item Failing conditions
+    \end{itemize}
+\end{itemize}
+
+\subsection*{4. Component-Level Evaluation Plan}
+\begin{itemize}
+    \item Vision module evaluation
+    \item Ontology-based PDDL generation evaluation
+    \item Planner integration with vision outputs
+    \item Decide what to test independently vs. end-to-end
+\end{itemize}
+
+\subsection*{5. Benchmarks and Prior Work}
+\begin{itemize}
+    \item Identify existing benchmarks or datasets to reuse
+    \item Review prior work on:
+    \begin{itemize}
+        \item Automatic PDDL generation
+        \item Ontology-driven task planning
+        \item Vision-planning integration
+    \end{itemize}
+    \item Decide which benchmarks are realistic and defensible
+\end{itemize}
+
+\subsection*{6. One-Week Brainstorming Phase (No Development)}
+\begin{itemize}
+    \item Agree on a one-week period focused on:
+    \begin{itemize}
+        \item Metric refinement
+        \item Literature review
+        \item Benchmark selection
+    \end{itemize}
+    \item Define expected outputs at the end of the week
+\end{itemize}
+
+\subsection*{7. Action Items and Ownership}
+\begin{itemize}
+    \item Assign responsibilities for:
+    \begin{itemize}
+        \item Metric definition
+        \item Benchmark research
+        \item Ontology and PDDL review
+        \item Vision-planning integration analysis
+    \end{itemize}
+    \item Set internal deadlines and next meeting date
+\end{itemize}
+
+\subsection*{8. Wrap-up}
+\begin{itemize}
+    \item Confirm shared understanding of goals and metrics
+    \item Identify open questions or risks
+    \item Align on next steps
+\end{itemize}
+
+\newpage
+\bibliographystyle{IEEEtran}
+\bibliography{ref}
+
+\end{document}
