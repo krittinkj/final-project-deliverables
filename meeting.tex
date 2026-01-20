@@ -257,6 +257,26 @@ Failures include (i) invalid or non-parsable PDDL files, (ii) no plan found with
 \subsubsection{Benchmarks / References}
 \begin{itemize}
 \item Vision--language to PDDL planning benchmarks in Block-world, Object Arrangement, and Hanoi domains \cite{planowl}.
+\item Might have to use slight modifications so the current depth camera position make sense
+\end{itemize}
+
+%----------------------------------------------------
+
+\subsection{Detailed Plan for Improving PDDL Generation}
+
+\subsubsection{Related Work}
+\begin{itemize}
+    \item Most approaches uses LLM/VLM to generate PDDL
+    \item Ontology or knowledge graph are used to augment the generation process, which is still done by LLM/VLM
+    \item Ontology or knowledge graph are created manually
+    \item Most approaches using LLM/VLM to generate PDDL use techniques like few-shot learning, prompt engineering, iterative refinement, and feedback loops to improve the generation quality
+\end{itemize}
+
+\subsubsection{Plan for Improvement}
+\begin{itemize}
+    \item Test current approach with visual capabilities since previous test was done without visual capabilities
+    \item Current limitation is due to difficulty modeling sequential process in PDDL
+    \item The point of using PDDL is to help with LLM struggling with long-term and complex task planning. The key is the PDDL produced must be correct and useful for planning.
 \end{itemize}
 
 %----------------------------------------------------
