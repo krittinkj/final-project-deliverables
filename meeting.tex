@@ -209,40 +209,55 @@ Robustness to noise &  &  &  \\
 
 \subsubsection*{C.1 Objectives}
 \begin{itemize}
-    \item What planning capability demonstrates scientific contribution?\\
-    The system demonstrates the automated generation of syntactically correct and semantically coherent PDDL domain and problem files directly from unstructured inputs (visual observations and natural language instructions) \cite{planowl}. This approach leverages Web Ontology Language (OWL) ontologies to define domain structures and Visual Language Models (VLMs) to ground abstract concepts, overcoming the scalability bottleneck of manual domain engineering \cite{planowl}, \cite{mbse}. Additionally, it integrates continuous learning by generalizing operators from demonstrations \cite{diehl} and updating knowledge bases with execution feedback \cite{ontology}.
+\item Demonstrate that natural language instructions combined with visual perception can be reliably translated into \textbf{syntactically correct and solvable PDDL problem instances}, enabling classical planners to generate executable task plans. This objective follows prior work showing that vision--language-to-PDDL pipelines can achieve near-perfect planning feasibility across multiple domains when ontology grounding and verification loops are used \cite{planowl}.
 \end{itemize}
 
 \subsubsection*{C.2 Metrics and Measurement}
+
 \begin{center}
-\begin{tabular}{|p{4cm}|p{3cm}|p{3cm}|p{4cm}|}
+\begin{tabular}{|p{3.8cm}|p{2.2cm}|p{3.2cm}|p{5cm}|}
 \hline
 \textbf{Metric} & \textbf{Unit} & \textbf{Target} & \textbf{Measurement Method} \\
 \hline
-Planning success rate ($F_{plan}$) & Percentage (\%) & $>92\%$ & Binary evaluation ($F_{plan} \in \{0, 1\}$) of whether the planner generates a valid, feasible execution plan that reaches the goal state \cite{planowl}, \cite{diehl}. \\
+
+Planning success rate ($F_{plan}$) &
+\% &
+100\% (benchmark tasks) &
+Percentage of tasks for which a valid plan is found that reaches the goal without constraint violations. Uses the binary feasibility metric $F_{plan}$ (1 = success, 0 = failure) as defined in PlanOwl, which reports 100\% success across Block-world, Object Arrangement, and Hanoi domains \cite{planowl}. \\
 \hline
-Planning time & Seconds (s) & $< 60$s & Total computation time for PDDL generation and solving; solvers exceeding a threshold (e.g., 60s) are considered a timeout failure \cite{ontology}, \cite{planowl}. \\
+
+PDDL syntax correctness ($F_{syn}$) &
+binary (0/1) &
+1 (error-free) &
+Domain and problem files must be fully parsable by a PDDL planner. Measured using the syntax correctness metric $F_{syn}$, requiring both files to be valid, as used in PlanOwl (100\% reported) \cite{planowl}. \\
 \hline
-PDDL correctness ($F_{syn}$) & Binary / Score & 100\% (Syntax valid) & Validation via a PDDL parser to ensure both Domain and Problem files are syntactically valid ($F_{syn}=1$ only if both are error-free) \cite{planowl}. \\
+
+Semantic grounding accuracy ($F_{pd1}$) &
+F-score &
+1.0 (exact match on benchmark tasks) &
+Balanced F-score comparing generated PDDL objects, initial states, and goal predicates against ground-truth problem instances. Precision and recall are computed over symbolic elements, and the final score is their harmonic mean, following the definition in PlanOwl \cite{planowl}. \\
 \hline
+
 \end{tabular}
 \end{center}
 
+The balanced F-score $F_{pd1}$ is defined as the harmonic mean of precision and recall over symbolic planning elements (objects, initial predicates, and goal predicates):
+\[
+F_{pd1} = \frac{2 \cdot P \cdot R}{P + R}
+\]
+where precision $P$ measures the fraction of generated symbols that are correct, and recall $R$ measures the fraction of ground-truth symbols correctly generated. Prior work reports $F_{pd1} = 1.0$ when perception and grounding are correct, with deviations attributed to upstream perception errors \cite{planowl}.
+
 \subsubsection*{C.3 Passing and Failure Criteria}
 \begin{itemize}
-    \item Minimum passing criteria:\\
-    The system must generate PDDL files that are syntactically parsable ($F_{syn}=1$) and result in a valid symbolic plan ($F_{plan}=1$) that satisfies the user's natural language goal \cite{planowl}. In multi-modal setups, the PDDL objects and initial states must match the ground truth of the visual scene (High System F1 score) \cite{planowl}.
-    
-    \item Failure conditions:\\
-    1. \textbf{Syntax Failure:} The generated PDDL files contain syntax errors preventing the planner from parsing them \cite{planowl}.\\
-    2. \textbf{Semantics/Grounding Mismatch:} The number of objects detected in the vision pipeline does not match the objects listed in the PDDL problem file (e.g., detecting 4 blocks but listing 5), triggering a recovery action \cite{planowl}.\\
-    3. \textbf{Unsolvability:} The planner cannot find a solution within the time limit due to ill-defined preconditions or effects (e.g., an object is defined as not graspable) \cite{diehl}.
+\item Minimum passing criteria:\ 
+A task is considered passing if the generated PDDL domain and problem files are syntactically valid and a classical planner can generate a plan that reaches the intended goal state without unintended actions, consistent with prior PDDL-based validation practices \cite{planowl,mbse}.
+\item Failure conditions:\ 
+Failures include (i) invalid or non-parsable PDDL files, (ii) no plan found within established planner time limits, or (iii) semantic inconsistencies between perceived objects and ontology constraints (e.g., infeasible grasp or tool assignments), as reported in prior ontology-based and demonstration-driven planning systems \cite{diehl, ontology}.
 \end{itemize}
 
 \subsubsection*{C.4 Benchmarks / References}
 \begin{itemize}
-    \item Prior PDDL generation or planning benchmarks:\\
-    Standard planning domains including \textbf{Blocksworld} (stacking/rearranging blocks) \cite{planowl}, \cite{diehl}, \textbf{Hanoi} (Tower of Hanoi constraints), and \textbf{Object Arrangement} (kitchen tasks like "place fruit in bowl") \cite{planowl}. Performance is compared against baselines such as manually crafted domains or systems like \textbf{ViPlan} \cite{planowl}.
+\item Vision--language to PDDL planning benchmarks in Block-world, Object Arrangement, and Hanoi domains \cite{planowl}.
 \end{itemize}
 
 %----------------------------------------------------
