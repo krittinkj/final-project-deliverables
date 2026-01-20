@@ -116,7 +116,7 @@
 \end{itemize}
 
 \newpage
-\section*{Pre-Advisor Meeting Worksheet: Measurable Objectives and Ownership}
+\section{Pre-Advisor Meeting Worksheet: Measurable Objectives and Ownership}
 
 \subsection*{Instructions}
 Each subsection below must be completed before the advisor meeting.
@@ -127,15 +127,15 @@ All metrics must be:
     \item Comparable to prior work or benchmarks
 \end{itemize}
 
-\subsection*{A. Image Processing (Perception)}
+\subsection{Image Processing (Perception)}
 
-\subsubsection*{A.1 Objectives}
+\subsubsection{Objectives}
 \begin{itemize}
     \item What perception capabilities are required for the final system task?\\
     \rule{\linewidth}{0.4pt}
 \end{itemize}
 
-\subsubsection*{A.2 Metrics and Measurement}
+\subsubsection{Metrics and Measurement}
 \begin{center}
 \begin{tabular}{|p{4cm}|p{3cm}|p{3cm}|p{4cm}|}
 \hline
@@ -150,7 +150,7 @@ Perception latency &  &  &  \\
 \end{tabular}
 \end{center}
 
-\subsubsection*{A.3 Passing and Failure Criteria}
+\subsubsection{Passing and Failure Criteria}
 \begin{itemize}
     \item Minimum passing criteria:\\
     \rule{0.9\linewidth}{0.4pt}
@@ -158,7 +158,7 @@ Perception latency &  &  &  \\
     \rule{0.9\linewidth}{0.4pt}
 \end{itemize}
 
-\subsubsection*{A.4 Benchmarks / References}
+\subsubsection{Benchmarks / References}
 \begin{itemize}
     \item Prior work or dataset used for comparison:\\
     \rule{0.9\linewidth}{0.4pt}
@@ -166,15 +166,15 @@ Perception latency &  &  &  \\
 
 %----------------------------------------------------
 
-\subsection*{B. Speech Processing}
+\subsection{Speech Processing}
 
-\subsubsection*{B.1 Objectives}
+\subsubsection{Objectives}
 \begin{itemize}
     \item What role does speech play in the final system behavior?\\
     \rule{\linewidth}{0.4pt}
 \end{itemize}
 
-\subsubsection*{B.2 Metrics and Measurement}
+\subsubsection{Metrics and Measurement}
 \begin{center}
 \begin{tabular}{|p{4cm}|p{3cm}|p{3cm}|p{4cm}|}
 \hline
@@ -189,7 +189,7 @@ Robustness to noise &  &  &  \\
 \end{tabular}
 \end{center}
 
-\subsubsection*{B.3 Passing and Failure Criteria}
+\subsubsection{Passing and Failure Criteria}
 \begin{itemize}
     \item Minimum passing criteria:\\
     \rule{0.9\linewidth}{0.4pt}
@@ -197,7 +197,7 @@ Robustness to noise &  &  &  \\
     \rule{0.9\linewidth}{0.4pt}
 \end{itemize}
 
-\subsubsection*{B.4 Benchmarks / References}
+\subsubsection{Benchmarks / References}
 \begin{itemize}
     \item Dataset, baseline system, or literature benchmark:\\
     \rule{0.9\linewidth}{0.4pt}
@@ -205,15 +205,14 @@ Robustness to noise &  &  &  \\
 
 %----------------------------------------------------
 
-\subsection*{C. Planning Algorithm (Ontology \& PDDL)}
+\subsection{Planning Algorithm (Ontology \& PDDL)}
 
-\subsubsection*{C.1 Objectives}
+\subsubsection{Objectives}
 \begin{itemize}
 \item Demonstrate that natural language instructions combined with visual perception can be reliably translated into \textbf{syntactically correct and solvable PDDL problem instances}, enabling classical planners to generate executable task plans. This objective follows prior work showing that vision--language-to-PDDL pipelines can achieve near-perfect planning feasibility across multiple domains when ontology grounding and verification loops are used \cite{planowl}.
 \end{itemize}
 
-\subsubsection*{C.2 Metrics and Measurement}
-
+\subsubsection{Metrics and Measurement}
 \begin{center}
 \begin{tabular}{|p{3.8cm}|p{2.2cm}|p{3.2cm}|p{5cm}|}
 \hline
@@ -247,7 +246,7 @@ F_{pd1} = \frac{2 \cdot P \cdot R}{P + R}
 \]
 where precision $P$ measures the fraction of generated symbols that are correct, and recall $R$ measures the fraction of ground-truth symbols correctly generated. Prior work reports $F_{pd1} = 1.0$ when perception and grounding are correct, with deviations attributed to upstream perception errors \cite{planowl}.
 
-\subsubsection*{C.3 Passing and Failure Criteria}
+\subsubsection{Passing and Failure Criteria}
 \begin{itemize}
 \item Minimum passing criteria:\ 
 A task is considered passing if the generated PDDL domain and problem files are syntactically valid and a classical planner can generate a plan that reaches the intended goal state without unintended actions, consistent with prior PDDL-based validation practices \cite{planowl,mbse}.
@@ -255,14 +254,14 @@ A task is considered passing if the generated PDDL domain and problem files are 
 Failures include (i) invalid or non-parsable PDDL files, (ii) no plan found within established planner time limits, or (iii) semantic inconsistencies between perceived objects and ontology constraints (e.g., infeasible grasp or tool assignments), as reported in prior ontology-based and demonstration-driven planning systems \cite{diehl, ontology}.
 \end{itemize}
 
-\subsubsection*{C.4 Benchmarks / References}
+\subsubsection{Benchmarks / References}
 \begin{itemize}
 \item Vision--language to PDDL planning benchmarks in Block-world, Object Arrangement, and Hanoi domains \cite{planowl}.
 \end{itemize}
 
 %----------------------------------------------------
 
-\subsection*{D. End-to-End System Evaluation}
+\subsection{End-to-End System Evaluation}
 
 \begin{itemize}
     \item Number of trials: \rule{4cm}{0.4pt}
@@ -274,7 +273,7 @@ Failures include (i) invalid or non-parsable PDDL files, (ii) no plan found with
 
 %----------------------------------------------------
 
-\subsection*{E. Responsibility and Ownership}
+\subsection{Responsibility and Ownership}
 
 \textbf{Each section must have a clearly responsible lead.}
 
@@ -283,22 +282,18 @@ Failures include (i) invalid or non-parsable PDDL files, (ii) no plan found with
 \hline
 \textbf{Worksheet Section} & \textbf{Primary Owner} & \textbf{Supporting Members} \\
 \hline
-Image Processing &  &  \\
+Image Processing & MB &  \\
 \hline
-Speech Processing &  &  \\
+Speech Processing & Pory &  \\
 \hline
-Planning Algorithm &  &  \\
+Planning Algorithm & Kong &  \\
 \hline
-Robot Arm Interface &  &  \\
-\hline
-End-to-End Evaluation &  &  \\
-\hline
-Benchmark Research &  &  \\
+End-to-End Evaluation & Pory & Kong  \\
 \hline
 \end{tabular}
 \end{center}
 
-\subsection*{G. Questions for Advisor}
+\subsection{G. Questions for Advisor}
 \begin{itemize}
     \item \rule{0.95\linewidth}{0.4pt}
     \item \rule{0.95\linewidth}{0.4pt}
