@@ -209,37 +209,81 @@ Robustness to noise &  &  &  \\
 
 \subsubsection{Objectives}
 \begin{itemize}
-    \item What planning capability demonstrates scientific contribution?\\
-    \rule{\linewidth}{0.4pt}
+\item Demonstrate that natural language instructions combined with visual perception can be reliably translated into \textbf{syntactically correct and solvable PDDL problem instances}, enabling classical planners to generate executable task plans. This objective follows prior work showing that vision--language-to-PDDL pipelines can achieve near-perfect planning feasibility across multiple domains when ontology grounding and verification loops are used \cite{planowl}.
 \end{itemize}
 
 \subsubsection{Metrics and Measurement}
 \begin{center}
-\begin{tabular}{|p{4cm}|p{3cm}|p{3cm}|p{4cm}|}
+\begin{tabular}{|p{3.8cm}|p{2.2cm}|p{3.2cm}|p{5cm}|}
 \hline
 \textbf{Metric} & \textbf{Unit} & \textbf{Target} & \textbf{Measurement Method} \\
 \hline
-Planning success rate &  &  &  \\
+
+Planning success rate ($F_{plan}$) &
+\% &
+97\%&
+Percentage of tasks for which a valid plan is found that reaches the goal without constraint violations. Uses the binary feasibility metric $F_{plan}$ (1 = success, 0 = failure) as defined in PlanOwl~\cite{planowl}. \\
 \hline
-Planning time &  &  &  \\
+
+PDDL syntax correctness ($F_{syn}$) &
+binary (0/1) &
+98\% &
+Domain and problem files must be fully parsable by a PDDL planner. Measured using the syntax correctness metric $F_{syn}$, requiring both files to be valid, as used in PlanOwl~\cite{planowl}. \\
 \hline
-PDDL correctness &  &  &  \\
+
+Semantic grounding accuracy ($F_{pd1}$) &
+F-score &
+95\% &
+Balanced F-score comparing generated PDDL objects, initial states, and goal predicates against ground-truth problem instances. Precision and recall are computed over symbolic elements, and the final score is their harmonic mean, following the definition in PlanOwl \cite{planowl}. \\
 \hline
+
 \end{tabular}
 \end{center}
 
+The balanced F-score $F_{pd1}$ is defined as the harmonic mean of precision and recall over symbolic planning elements (objects, initial predicates, and goal predicates):
+\[
+F_{pd1} = \frac{2 \cdot P \cdot R}{P + R}
+\]
+where precision $P$ measures the fraction of generated symbols that are correct, and recall $R$ measures the fraction of ground-truth symbols correctly generated. Prior work reports $F_{pd1} = 1.0$ when perception and grounding are correct, with deviations attributed to upstream perception errors \cite{planowl}.
+
 \subsubsection{Passing and Failure Criteria}
 \begin{itemize}
-    \item Minimum passing criteria:\\
-    \rule{0.9\linewidth}{0.4pt}
-    \item Failure conditions:\\
-    \rule{0.9\linewidth}{0.4pt}
+\item Minimum passing criteria:\ 
+A task is considered passing if the generated PDDL domain and problem files are syntactically valid and a classical planner can generate a plan that reaches the intended goal state without unintended actions, consistent with prior PDDL-based validation practices \cite{planowl,mbse}.
+\item Failure conditions:\ 
+Failures include (i) invalid or non-parsable PDDL files, (ii) no plan found within established planner time limits, or (iii) semantic inconsistencies between perceived objects and ontology constraints (e.g., infeasible grasp or tool assignments), as reported in prior ontology-based and demonstration-driven planning systems \cite{diehl, ontology}.
 \end{itemize}
 
 \subsubsection{Benchmarks / References}
 \begin{itemize}
-    \item Prior PDDL generation or planning benchmarks:\\
-    \rule{0.9\linewidth}{0.4pt}
+\item Vision--language to PDDL planning benchmarks in Block-world, Object Arrangement, and Hanoi domains \cite{planowl}.
+\item Might have to use slight modifications so the current depth camera position make sense
+\item Achieved Numbers~\cite{planowl}:
+\begin{itemize}
+    \item \textbf{Block-World}: The system achieved perfect scores (100\%) for F-score, Plan Correctness, and Syntax Correctness
+    \item \textbf{Object Arrangement (Standard)}: For the standard, Large Number of Objects (LO), and Predefined Relationships (R) variants, PlanOwl achieved perfect scores (100\%) across all three metrics
+    \item \textbf{Object Arrangement (Multiple Objects)}: The system achieved 98.8\% for F-score and Plan Correctness, and 98.4\% for Syntax Correctness
+    \item \textbf{Hanoi}: The system achieved an F-score of 95.6\%, Plan Correctness of 97.4\%, and Syntax Correctness of 98.4\%
+\end{itemize}
+\end{itemize}
+
+%----------------------------------------------------
+
+\subsection{Detailed Plan for Improving PDDL Generation}
+
+\subsubsection{Related Work}
+\begin{itemize}
+    \item Most approaches uses LLM/VLM to generate PDDL
+    \item Ontology or knowledge graph are used to augment the generation process, which is still done by LLM/VLM
+    \item Ontology or knowledge graph are created manually
+    \item Most approaches using LLM/VLM to generate PDDL use techniques like few-shot learning, prompt engineering, iterative refinement, and feedback loops to improve the generation quality
+\end{itemize}
+
+\subsubsection{Plan for Improvement}
+\begin{itemize}
+    \item Test current approach with visual capabilities since previous test was done without visual capabilities
+    \item Current limitation is due to difficulty modeling sequential process in PDDL
+    \item The point of using PDDL is to help with LLM struggling with long-term and complex task planning. The key is the PDDL produced must be correct and useful for planning.
 \end{itemize}
 
 %----------------------------------------------------
