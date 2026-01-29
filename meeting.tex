@@ -221,19 +221,19 @@ Robustness to noise &  &  &  \\
 
 Planning success rate ($F_{plan}$) &
 \% &
-100\% (benchmark tasks) &
-Percentage of tasks for which a valid plan is found that reaches the goal without constraint violations. Uses the binary feasibility metric $F_{plan}$ (1 = success, 0 = failure) as defined in PlanOwl, which reports 100\% success across Block-world, Object Arrangement, and Hanoi domains \cite{planowl}. \\
+97\%&
+Percentage of tasks for which a valid plan is found that reaches the goal without constraint violations. Uses the binary feasibility metric $F_{plan}$ (1 = success, 0 = failure) as defined in PlanOwl~\cite{planowl}. \\
 \hline
 
 PDDL syntax correctness ($F_{syn}$) &
 binary (0/1) &
-1 (error-free) &
-Domain and problem files must be fully parsable by a PDDL planner. Measured using the syntax correctness metric $F_{syn}$, requiring both files to be valid, as used in PlanOwl (100\% reported) \cite{planowl}. \\
+98\% &
+Domain and problem files must be fully parsable by a PDDL planner. Measured using the syntax correctness metric $F_{syn}$, requiring both files to be valid, as used in PlanOwl~\cite{planowl}. \\
 \hline
 
 Semantic grounding accuracy ($F_{pd1}$) &
 F-score &
-1.0 (exact match on benchmark tasks) &
+95\% &
 Balanced F-score comparing generated PDDL objects, initial states, and goal predicates against ground-truth problem instances. Precision and recall are computed over symbolic elements, and the final score is their harmonic mean, following the definition in PlanOwl \cite{planowl}. \\
 \hline
 
@@ -258,6 +258,13 @@ Failures include (i) invalid or non-parsable PDDL files, (ii) no plan found with
 \begin{itemize}
 \item Vision--language to PDDL planning benchmarks in Block-world, Object Arrangement, and Hanoi domains \cite{planowl}.
 \item Might have to use slight modifications so the current depth camera position make sense
+\item Achieved Numbers~\cite{planowl}:
+\begin{itemize}
+    \item \textbf{Block-World}: The system achieved perfect scores (100\%) for F-score, Plan Correctness, and Syntax Correctness
+    \item \textbf{Object Arrangement (Standard)}: For the standard, Large Number of Objects (LO), and Predefined Relationships (R) variants, PlanOwl achieved perfect scores (100\%) across all three metrics
+    \item \textbf{Object Arrangement (Multiple Objects)}: The system achieved 98.8\% for F-score and Plan Correctness, and 98.4\% for Syntax Correctness
+    \item \textbf{Hanoi}: The system achieved an F-score of 95.6\%, Plan Correctness of 97.4\%, and Syntax Correctness of 98.4\%
+\end{itemize}
 \end{itemize}
 
 %----------------------------------------------------
