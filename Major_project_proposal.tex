@@ -232,6 +232,14 @@ For this project, we aim to contribute to this progress by addressing some of th
 
 \subsubsection{Planning}
 
+Since the main focus of the early part of the second semester is integrating and moving the setup from Gazebo simulation to actual hardware, the planning component has not undergone major architectural changes. However, we have conducted additional research on PDDL generation approaches and examined recent work in this area.
+
+Most recent work on PDDL generation employs the same core approach as ours, using a large language model (LLM) to perform the generation, but applies different techniques, including prompt engineering, feedback loops, multi-shot prompting, and few-shot prompting. Work such as PlanOwl~\cite{planowl} leverages ontologies to better represent environmental and domain knowledge, yet still relies on an LLM for the final PDDL generation step.
+
+Based on this research, we have worked to improve our PDDL generation through enhanced prompt engineering and refinement of the example PDDL templates provided to the LLM. Previously, we used a static PDDL structure for robot actions and predicates. However, testing revealed that this approach lacked flexibility, and the LLM often struggled to model sequential tasks that require modifications to action preconditions and effects. To address this, we now provide a manually created PDDL template in the system prompt, which the LLM can use as a reference and modify as needed. This change has improved performance in our preliminary tests, though extensive evaluation is still required.
+
+During testing, we encountered an issue with more complex, multi-step instructions: we are hitting the request limit of the free tier for our LLM API. We plan to resolve this either by making our action primitives more complex to reduce the number of function calls, or by making the medium-level planner more deterministic to limit API usage.
+
 \subsubsection{Simulation}
 
 \subsubsection{Hardware}
@@ -336,6 +344,8 @@ The project is structured around four primary technical area of concentration ex
 \subsubsection{Speech Processing}
 
 \subsubsection{Planning Algorithm}
+The current progress is on schedule. Since the primary focus has been on transitioning from simulation to hardware, the planning architecture remains stable while improvements have been made to PDDL generation through enhanced prompt engineering and flexible template-based approaches. The system can now generate more robust task plans for sequential operations, though ongoing work aims to address API usage constraints and improve scalability. Development continues toward seamless integration of high-level planning with the perception and execution modules within the hierarchical system architecture.
+
 
 \subsubsection{Interface with Robot Arm}
 
