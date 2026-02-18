@@ -244,11 +244,15 @@ During testing, we encountered a practical constraint: for complex, multi-step i
 
 At the current stage of development, the hardware infrastructure for the vision-guided manipulation system has been partially implemented and validated within a controlled laboratory environment. The system is built around a Universal Robots (UR) collaborative robotic arm mounted on a fixed experimental table.
 
-To enable perception-driven manipulation, a depth camera holder was mechanically installed at the base of the UR arm. The mounting structure was secured to ensure positional stability and minimize vibration during operation. An Intel RealSense D435i depth camera was attached to the holder and connected to the processing unit via USB interface.
+To enable perception-driven manipulation, a depth camera holder was mechanically installed at the base of the UR arm. The mounting structure was secured to ensure positional stability and minimize vibration during operation. An Intel RealSense D435i depth camera was attached to the holder and connected to the processing unit via a USB interface.
+
+To accommodate the physical distance between the camera mounting location and the processing workstation, an extended USB cable was procured. The cable was routed carefully to avoid interference with the robot's operational workspace and to ensure safe operation during manipulation tasks.
+
+Since the Intel RealSense D435i requires USB~3.0 bandwidth for stable RGB and depth data streaming, a USB~3.0-compatible hub/dongle was integrated to guarantee interface compatibility with the host system. This configuration ensured sufficient data transfer rates for real-time image acquisition without frame drops or communication instability. The connectivity setup was validated during continuous operation tests.
 
 A blue board was placed within the robot's workspace to serve as a controlled visual background. This improves contrast for the perception node and reduces noise in segmentation and depth estimation tasks. The physical installation of the camera mount and workspace preparation is shown in Figure~\ref{fig:camera_mount_setup}.
 
-\begin{figure}[h]
+\begin{figure}[H]
     \centering
     \includegraphics[width=0.4\linewidth]{camera_mount_setup.jpg}
     \caption{Experimental hardware setup showing the installed depth camera mount at the UR arm base and the blue board placed within the manipulation workspace.}
@@ -263,11 +267,10 @@ The reference points are defined as follows:
 
 \begin{itemize}
     \item \textbf{UR Arm Base (Origin):} $(0,0,0)$
-    \item \textbf{Ground Origin:} $(0,0,-0.805)$
     \item \textbf{Depth Camera Position:} $(0,-0.5442,0.6711)$
 \end{itemize}
 
-The ground origin represents the point directly beneath the center of the UR arm base, measured from the surface of the experimental table. The depth camera position specifies its spatial location relative to the robot base frame.
+The depth camera position specifies its spatial location relative to the robot base frame and was determined through direct physical measurement.
 
 The spatial configuration and key geometric measurements are illustrated in Figure~\ref{fig:hardware_measurement}. This explicit coordinate definition establishes the foundation for camera-to-robot transformation and pose estimation during manipulation tasks.
 
@@ -280,21 +283,17 @@ The spatial configuration and key geometric measurements are illustrated in Figu
 
 \paragraph{Key Physical Measurements}
 
-Several physical parameters were measured to validate spatial consistency within the perception-to-action pipeline.
+Several physical parameters were measured to validate spatial consistency within the perception-to-action pipeline. These measurements were required to ensure accurate transformation between camera coordinates and the robot base frame.
 
-\begin{table}[h]
-\centering
-\caption{Key Physical Measurements}
-\begin{tabular}{|l|c|p{5cm}|}
-\hline
-\textbf{Parameter} & \textbf{Value} & \textbf{Description} \\ \hline
-Future Board Width & 0.29 m & Width of the experimental board component \\ \hline
-OFFSET & 0.1778 m & Distance from the center of the UR arm base to the center of the camera mounting point \\ \hline
-HEIGHT & 0.805 m & Distance from the ground to the surface of the experimental table \\ \hline
-\end{tabular}
-\end{table}
+The primary measured values include:
 
-These measurements were obtained using manual measurement tools and are used to verify the consistency of coordinate transformations implemented within the system.
+\begin{itemize}
+    \item Vertical distance from UR base to camera mount
+    \item Horizontal offset between camera and robot base center
+    \item Table height relative to robot base
+\end{itemize}
+
+These parameters were incorporated into the system calibration process and are reflected in the coordinate definitions provided above.
 
 
 \newpage
@@ -403,16 +402,11 @@ The current progress is on schedule. Since the primary focus has been on transit
 
 
 \subsubsection{Interface with Robot Arm}
-At this stage of the project:
 
-\begin{itemize}
-    \item The depth camera is securely mounted and operational.
-    \item The camera position relative to the UR base has been measured.
-    \item A consistent coordinate reference frame has been established.
-    \item The experimental workspace has been prepared for controlled perception experiments.
-\end{itemize}
+Progress is largely on schedule. The depth camera has been securely mounted at the base of the UR arm and is fully operational. Its spatial position relative to the UR base has been measured, and a consistent coordinate reference frame has been established to support camera-to-robot transformation. The experimental workspace has also been prepared using a controlled visual background to improve perception reliability. 
 
-This hardware configuration establishes the foundational infrastructure required for implementing accurate camera-to-robot coordinate transformation and enabling vision-guided manipulation tasks in subsequent development phases.
+Some minor refinements remain in the mechanical integration. Future improvements include the design and fabrication of custom 3D-printed alignment clamps to enhance mounting stability and repeatability. Additionally, a structured cable management solution and dedicated wire holder are planned to ensure that USB routing does not interfere with the UR arm's range of motion. These enhancements will further improve system robustness and operational safety.
+
 \newpage
 \section{Theory and Technical Backup}
 
