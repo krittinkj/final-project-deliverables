@@ -242,6 +242,61 @@ During testing, we encountered a practical constraint: for complex, multi-step i
 
 \subsubsection{Hardware}
 
+At the current stage of development, the hardware infrastructure for the vision-guided manipulation system has been partially implemented and validated within a controlled laboratory environment. The system is built around a Universal Robots (UR) collaborative robotic arm mounted on a fixed experimental table.
+
+To enable perception-driven manipulation, a depth camera holder was mechanically installed at the base of the UR arm. The mounting structure was secured to ensure positional stability and minimize vibration during operation. An Intel RealSense D435i depth camera was attached to the holder and connected to the processing unit via USB interface.
+
+A blue board was placed within the robot's workspace to serve as a controlled visual background. This improves contrast for the perception node and reduces noise in segmentation and depth estimation tasks. The physical installation of the camera mount and workspace preparation is shown in Figure~\ref{fig:camera_mount_setup}.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.4\linewidth]{camera_mount_setup.jpg}
+    \caption{Experimental hardware setup showing the installed depth camera mount at the UR arm base and the blue board placed within the manipulation workspace.}
+    \label{fig:camera_mount_setup}
+\end{figure}
+
+\paragraph{Coordinate System Definition}
+
+To enable consistent spatial reasoning between perception and manipulation modules, a unified coordinate reference frame was defined. All coordinates are expressed relative to the origin located at the center of the UR arm base.
+
+The reference points are defined as follows:
+
+\begin{itemize}
+    \item \textbf{UR Arm Base (Origin):} $(0,0,0)$
+    \item \textbf{Ground Origin:} $(0,0,-0.805)$
+    \item \textbf{Depth Camera Position:} $(0,-0.5442,0.6711)$
+\end{itemize}
+
+The ground origin represents the point directly beneath the center of the UR arm base, measured from the surface of the experimental table. The depth camera position specifies its spatial location relative to the robot base frame.
+
+The spatial configuration and key geometric measurements are illustrated in Figure~\ref{fig:hardware_measurement}. This explicit coordinate definition establishes the foundation for camera-to-robot transformation and pose estimation during manipulation tasks.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.9\linewidth]{measurement_setup.jpg}
+    \caption{Hardware measurement setup showing the UR arm base reference frame, depth camera position, table height, and spatial offsets. All coordinates are defined relative to the UR arm base origin $(0,0,0)$.}
+    \label{fig:hardware_measurement}
+\end{figure}
+
+\paragraph{Key Physical Measurements}
+
+Several physical parameters were measured to validate spatial consistency within the perception-to-action pipeline.
+
+\begin{table}[h]
+\centering
+\caption{Key Physical Measurements}
+\begin{tabular}{|l|c|p{5cm}|}
+\hline
+\textbf{Parameter} & \textbf{Value} & \textbf{Description} \\ \hline
+Future Board Width & 0.29 m & Width of the experimental board component \\ \hline
+OFFSET & 0.1778 m & Distance from the center of the UR arm base to the center of the camera mounting point \\ \hline
+HEIGHT & 0.805 m & Distance from the ground to the surface of the experimental table \\ \hline
+\end{tabular}
+\end{table}
+
+These measurements were obtained using manual measurement tools and are used to verify the consistency of coordinate transformations implemented within the system.
+
+
 \newpage
 \section{Project Planning}
 The project is structured around four primary technical area of concentration exluding any relevant paperwork tasks. These align seamlessly with the core enhancements, which will all be implemented in parallel: \textbf{image processing, speech processing, planning algorithms, and robotic arm integration}. The planned timeline is structured into weekly milestones to ensure iterative progress and early validation
@@ -348,7 +403,16 @@ The current progress is on schedule. Since the primary focus has been on transit
 
 
 \subsubsection{Interface with Robot Arm}
+At this stage of the project:
 
+\begin{itemize}
+    \item The depth camera is securely mounted and operational.
+    \item The camera position relative to the UR base has been measured.
+    \item A consistent coordinate reference frame has been established.
+    \item The experimental workspace has been prepared for controlled perception experiments.
+\end{itemize}
+
+This hardware configuration establishes the foundational infrastructure required for implementing accurate camera-to-robot coordinate transformation and enabling vision-guided manipulation tasks in subsequent development phases.
 \newpage
 \section{Theory and Technical Backup}
 
