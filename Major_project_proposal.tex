@@ -230,9 +230,15 @@ For this project, we aim to contribute to this progress by addressing some of th
 
 \subsubsection{Speech}
 
+Progress on the speech module has remained steady but minimal. We have finalized the microphone selection for the project and secured the hardware, and initial development of a text-to-speech (TTS) pipeline is underway to support richer user interaction. Because the core speech recognition functionality reached high accuracy and low latency during semester 1 testing, the team is prioritizing the broader transition from simulation to hardware over additional speech refinements for now.
+
 \subsubsection{Planning}
 
-\subsubsection{Simulation}
+Since the main focus of the early part of the second semester is integrating and moving the setup from Gazebo simulation to actual hardware, the planning component has not undergone major architectural changes. However, we have conducted extensive research on PDDL generation approaches to understand the current state of the field and identify techniques that could improve our system's reliability and correctness. We surveyed recent work and found that most approaches share a common foundation: using LLMs for PDDL generation with different techniques such as prompt engineering, feedback loops, multi-shot prompting, and few-shot prompting. Even ontology-based approaches like PlanOwl~\cite{planowl} leverage ontologies for environmental knowledge representation but still rely on an LLM for the final PDDL generation step. We identified five principal approaches: LLM-based structured generation (ViLaIn~\cite{vilain}, Image2PDDL~\cite{image2pddl}, LLM+P~\cite{llm+p}), fine-tuned LLMs (PDDL-Instruct~\cite{pddl-instruct}), vision-to-symbolic pipelines (VeriGraph~\cite{verigraph}, SayPlan~\cite{sayplan}), neuro-symbolic domain learning (PDDLLM~\cite{pddllm}, UniDomain~\cite{unidomain}), and planner-in-the-loop multi-agent frameworks (SPCA~\cite{spca}, LLM Domain Generator~\cite{llm-domain-generators}). Our analysis reveals that while prompted LLM approaches are flexible, they suffer from hallucinated predicates, missing preconditions, and long-horizon consistency failures. Hybrid neuro-symbolic systems with planner-in-the-loop validation~\cite{pddllm,unidomain, spca} consistently outperform prompted-only methods, with critical correctness enforcement techniques including syntax validation through prompt templates, semantic validation via planner solvability checks, action validity through simulation rollouts, and logical reasoning verification.
+
+Informed by this research, we have improved our PDDL generation through enhanced prompt engineering and flexible template-based approaches. Previously, we used a static PDDL structure for robot actions and predicates. However, testing revealed that this approach lacked flexibility, and the LLM often struggled to model sequential tasks requiring modifications to action preconditions and effects. We now provide a manually created PDDL template in the system prompt that the LLM can reference and modify as needed, similar to the structured prompting strategies employed in Image2PDDL~[2] and ViLaIn~[1]. This change has improved performance in preliminary tests, though extensive evaluation is still required. We are also exploring planner-in-the-loop validation inspired by ViLaIn~[1] and SPCA~[9] to catch semantic errors early.
+
+During testing, we encountered a practical constraint: for complex, multi-step instructions, we are hitting the input token limit of our LLM API's free tier. We plan to address this by either making our action primitives more complex to reduce function calls, making the medium-level planner more deterministic to limit API usage, and optimizing the system prompt. 
 
 \subsubsection{Hardware}
 
@@ -335,7 +341,11 @@ The project is structured around four primary technical area of concentration ex
 
 \subsubsection{Speech Processing}
 
+Progress is slightly behind the planned schedule. The team has procured the required microphone and supporting hardware, but the text-to-speech development is moving slower than expected while effort is directed toward migrating the overall system from simulation to physical hardware.
+
 \subsubsection{Planning Algorithm}
+The current progress is on schedule. Since the primary focus has been on transitioning from simulation to hardware, the planning architecture remains stable while improvements have been made to PDDL generation through enhanced prompt engineering and flexible template-based approaches. The system can now generate more robust task plans for sequential operations, though ongoing work aims to address API usage constraints and improve scalability. Development continues toward seamless integration of high-level planning with the perception and execution modules within the hierarchical system architecture.
+
 
 \subsubsection{Interface with Robot Arm}
 
