@@ -242,6 +242,60 @@ During testing, we encountered a practical constraint: for complex, multi-step i
 
 \subsubsection{Hardware}
 
+At the current stage of development, the hardware infrastructure for the vision-guided manipulation system has been partially implemented and validated within a controlled laboratory environment. The system is built around a Universal Robots (UR) collaborative robotic arm mounted on a fixed experimental table.
+
+To enable perception-driven manipulation, a depth camera holder was mechanically installed at the base of the UR arm. The mounting structure was secured to ensure positional stability and minimize vibration during operation. An Intel RealSense D435i depth camera was attached to the holder and connected to the processing unit via a USB interface.
+
+To accommodate the physical distance between the camera mounting location and the processing workstation, an extended USB cable was procured. The cable was routed carefully to avoid interference with the robot's operational workspace and to ensure safe operation during manipulation tasks.
+
+Since the Intel RealSense D435i requires USB~3.0 bandwidth for stable RGB and depth data streaming, a USB~3.0-compatible hub/dongle was integrated to guarantee interface compatibility with the host system. This configuration ensured sufficient data transfer rates for real-time image acquisition without frame drops or communication instability. The connectivity setup was validated during continuous operation tests.
+
+A blue board was placed within the robot's workspace to serve as a controlled visual background. This improves contrast for the perception node and reduces noise in segmentation and depth estimation tasks. The physical installation of the camera mount and workspace preparation is shown in Figure~\ref{fig:camera_mount_setup}.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.4\linewidth]{camera_mount_setup.jpg}
+    \caption{Experimental hardware setup showing the installed depth camera mount at the UR arm base and the blue board placed within the manipulation workspace.}
+    \label{fig:camera_mount_setup}
+\end{figure}
+
+\paragraph{Coordinate System Definition}
+
+To enable consistent spatial reasoning between perception and manipulation modules, a unified coordinate reference frame was defined. All coordinates are expressed relative to the origin located at the center of the UR arm base.
+
+The reference points are defined as follows:
+
+\begin{itemize}
+    \item \textbf{UR Arm Base (Origin):} $(0,0,0)$
+    \item \textbf{Depth Camera Position:} $(0,-0.5442,0.6711)$
+\end{itemize}
+
+The depth camera position specifies its spatial location relative to the robot base frame and was determined through direct physical measurement.
+
+The spatial configuration and key geometric measurements are illustrated in Figure~\ref{fig:hardware_measurement}. This explicit coordinate definition establishes the foundation for camera-to-robot transformation and pose estimation during manipulation tasks.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.9\linewidth]{measurement_setup.jpg}
+    \caption{Hardware measurement setup showing the UR arm base reference frame, depth camera position, table height, and spatial offsets. All coordinates are defined relative to the UR arm base origin $(0,0,0)$.}
+    \label{fig:hardware_measurement}
+\end{figure}
+
+\paragraph{Key Physical Measurements}
+
+Several physical parameters were measured to validate spatial consistency within the perception-to-action pipeline. These measurements were required to ensure accurate transformation between camera coordinates and the robot base frame.
+
+The primary measured values include:
+
+\begin{itemize}
+    \item Vertical distance from UR base to camera mount
+    \item Horizontal offset between camera and robot base center
+    \item Table height relative to robot base
+\end{itemize}
+
+These parameters were incorporated into the system calibration process and are reflected in the coordinate definitions provided above.
+
+
 \newpage
 \section{Project Planning}
 The project is structured around four primary technical area of concentration exluding any relevant paperwork tasks. These align seamlessly with the core enhancements, which will all be implemented in parallel: \textbf{image processing, speech processing, planning algorithms, and robotic arm integration}. The planned timeline is structured into weekly milestones to ensure iterative progress and early validation
@@ -348,6 +402,10 @@ The current progress is on schedule. Since the primary focus has been on transit
 
 
 \subsubsection{Interface with Robot Arm}
+
+Progress is largely on schedule. The depth camera has been securely mounted at the base of the UR arm and is fully operational. Its spatial position relative to the UR base has been measured, and a consistent coordinate reference frame has been established to support camera-to-robot transformation. The experimental workspace has also been prepared using a controlled visual background to improve perception reliability. 
+
+Some minor refinements remain in the mechanical integration. Future improvements include the design and fabrication of custom 3D-printed alignment clamps to enhance mounting stability and repeatability. Additionally, a structured cable management solution and dedicated wire holder are planned to ensure that USB routing does not interfere with the UR arm's range of motion. These enhancements will further improve system robustness and operational safety.
 
 \newpage
 \section{Theory and Technical Backup}
