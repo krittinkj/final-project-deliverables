@@ -245,12 +245,17 @@ A manual camera calibration procedure was attempted using a $6\times7$ chessboar
     \caption{6x7 Chessboard calibration setup for Intel RealSense D435i, causing unreliable parameter estimation due to incomplete field-of-view coverage.}
     \label{fig:calibration_chess_setup}
 \end{figure}
+Given that the Intel RealSense D435 is factory calibrated and provides intrinsic parameters through the ROS \texttt{/camera\_info} topic, the initial approach was to leverage the built-in camera intrinsics together with the librealsense deprojection function. Specifically, the implementation experimented with \texttt{rs2\_deproject\_pixel\_to\_point()}, which converts a 2D pixel coordinate and its associated depth value into a 3D point in the camera coordinate frame. The required inputs include the intrinsic parameters (focal lengths $f_x$, $f_y$, principal point $p_x$, $p_y$, and distortion coefficients), the pixel coordinate $(u,v)$, and the depth value extracted from the aligned depth image.
 
-Given that the Intel RealSense D435 is factory calibrated and provides intrinsic parameters through the ROS \texttt{/camera\_info} topic, the methodology was revised to utilize the built-in camera intrinsics and the librealsense deprojection function. Instead of manually computing geometric transformations, the implementation now uses \texttt{rs2\_deproject\_pixel\_to\_point()}, which converts a 2D pixel coordinate and its associated depth value into a 3D point in the camera coordinate frame. The required inputs include the intrinsic parameters (focal lengths $f_x$, $f_y$, principal point $p_x$, $p_y$, and distortion coefficients), the pixel coordinate $(u,v)$, and the depth value at that location extracted from the aligned depth image.
+Since the RealSense coordinate system differs from the ROS coordinate convention, a coordinate transformation was implemented to ensure compatibility with RViz visualization and downstream robotic manipulation tasks. The mapping follows:
+\[
+X_{ROS} = Z_{RS}, \quad
+Y_{ROS} = -X_{RS}, \quad
+Z_{ROS} = -Y_{RS}
+\]
+aligning the forward, left, and upward directions according to ROS standards.
 
-Since the RealSense coordinate system differs from the ROS coordinate convention, a coordinate transformation was implemented to ensure compatibility with RViz visualization and downstream robotic manipulation tasks. The mapping follows: $X_{ROS} = Z_{RS}$, $Y_{ROS} = -X_{RS}$, and $Z_{ROS} = -Y_{RS}$. This transformation aligns the forward, left, and upward directions according to ROS standards.
-
-To evaluate accuracy, a benchmarking experiment was initiated using a green box placed within the camera workspace as a physical reference object. The real-world distance was measured manually and compared against the output from the pixel-to-real-world service. The experimental setup is illustrated in Figure~\ref{fig:calibration_vision_setup}. Multiple trials are being conducted to compute absolute error and mean absolute error for quantitative validation.
+To evaluate accuracy, a benchmarking experiment was conducted using a green box placed within the camera workspace as a physical reference object. The real-world distance was measured manually and compared against the output from the pixel-to-real-world service. Multiple trials were performed to compute absolute error and mean absolute error for quantitative validation. The experimental setup is illustrated in Figure~\ref{fig:calibration_vision_setup}.
 
 \begin{figure}[H]
     \centering
@@ -259,11 +264,15 @@ To evaluate accuracy, a benchmarking experiment was initiated using a green box 
     \label{fig:calibration_vision_setup}
 \end{figure}
 
-Following the stabilization of the intrinsic-based deprojection pipeline, further testing was conducted using the native \texttt{rs2\_deproject\_pixel\_to\_point()} function provided by the RealSense SDK. This implementation required subscribing to additional topics and restructuring the perception node to directly interface with the librealsense library. Although the deprojection logic was successfully implemented, repeated camera initialization issues were encountered during runtime. The failures were primarily related to device access timing conflicts and pipeline re-initialization when multiple nodes attempted to access the camera stream simultaneously. 
+Although the deprojection logic using \texttt{rs2\_deproject\_pixel\_to\_point()} was successfully implemented, repeated camera initialization issues were encountered during runtime. These failures were primarily caused by device access conflicts and pipeline re-initialization when multiple ROS nodes attempted to access the camera stream simultaneously. As a result, the SDK-based approach was deemed unstable for the current system configuration.
 
-Due to project timeline constraints and the need to prioritize integration with the robot motion planning module, a decision was made to adopt a more stable and controllable approach based on explicit geometric computation using the pinhole camera model. Instead of relying on SDK-level deprojection, 3D coordinates were computed analytically from intrinsic parameters and depth values using standard perspective projection equations.
-
-where $(u,v)$ represents the pixel coordinate, $Z$ is the measured depth value, and $(f_x, f_y, p_x, p_y)$ are intrinsic parameters obtained from the camera calibration.
+Due to project timeline constraints and the need to prioritize integration with the robot motion planning module, the implementation was temporarily shifted to a more stable and controllable method based on explicit geometric computation using the pinhole camera model. Instead of relying on SDK-level deprojection, 3D coordinates were computed analytically from intrinsic parameters and depth values using standard perspective projection equations:
+\[
+X = \frac{(u - p_x)Z}{f_x}, \quad
+Y = \frac{(v - p_y)Z}{f_y}, \quad
+Z = Z
+\]
+where $(u,v)$ represents the pixel coordinate, $Z$ is the measured depth value, and $(f_x, f_y, p_x, p_y)$ are intrinsic parameters obtained from the camera calibration. The SDK-based deprojection approach will be revisited in future work once system-level camera access and synchronization issues are resolved.
 
 Experimental validation was performed using ten objects placed at ten different locations within the working space. All measurements were conducted using the Intel RealSense D435i depth camera after calibration alignment. The computed real-world coordinates were compared against manually measured ground-truth values. The evaluation resulted in a Root Mean Square Error (RMSE) of $0.0494$~m. While this result demonstrates functional consistency of the geometric transformation approach, further refinement is required to improve accuracy and reduce residual error within the workspace.
 
