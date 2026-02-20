@@ -227,6 +227,70 @@ For this project, we aim to contribute to this progress by addressing some of th
 
 \subsubsection{Vision}
 
+The current progress of the perception module focuses on stabilizing the object detection pipeline integrated with the Intel RealSense D435 depth camera in order to convert 2D image pixels into accurate 3D real-world coordinates using ROS~2 and the librealsense SDK. The development process involved three major phases: environment stabilization, perception debugging, and implementation of the pixel-to-real transformation service.
+
+During the initial setup, a Python dependency conflict was encountered due to a version mismatch of \texttt{setuptools}. The virtual environment (\texttt{vision\_venv}) required version 59.6.0, whereas the global user-site installation contained version 80.10.2. This discrepancy caused package uninstall errors and environment instability because Python referenced user-site packages even inside the virtual environment. The issue was resolved by isolating the environment using \texttt{PYTHONNOUSERSITE=1} and removing conflicting global packages. After this adjustment, dependency resolution and package management became stable.
+
+Subsequently, issues were observed in the visualization pipeline where the GraspNet and Scene Understanding windows appeared black and unresponsive, despite successful ROS topic publishing from \texttt{/camera/color/image\_raw} and verified QoS compatibility. Depth and RGB streams were confirmed functional, and CvBridge conversion was inspected. The root cause was identified as a version mismatch between the system-installed \texttt{cv\_bridge} package and the locally used OpenCV version. Since \texttt{cv\_bridge} was compiled against a different OpenCV build, runtime incompatibility occurred. To ensure consistency, the \texttt{vision\_opencv} repository was cloned and compiled from source against the specific OpenCV version used in the project. The CMake configuration was explicitly linked with the correct OpenCV library. After rebuilding the workspace, image visualization was restored and the perception pipeline became stable.
+
+An additional issue occurred within the CLIP classifier node, producing the error \texttt{AttributeError: 'BaseModelOutputWithPooling' object has no attribute 'norm'}. This was traced to incompatibility between the HuggingFace CLIP implementation and the expected OpenAI CLIP API behavior in the pipeline. The solution was to replace the HuggingFace implementation with the original OpenAI CLIP repository installed directly from source. After this modification, object classification functionality was restored without further runtime errors.
+
+For the pixel-to-real world coordinate conversion, the initial implementation relied on a ratio-based scaling approach derived from simulation measurements. This method estimated real-world distances by referencing known dimensions within the simulated environment and computing a pixel-to-world scaling factor. However, this approach was environment-dependent, lacked generalizability, and produced limited accuracy when transitioning to real hardware.
+
+A manual camera calibration procedure was attempted using a $6\times7$ chessboard pattern. The resulting distortion coefficients were $k_1 = 0.0187$, $k_2 = 0.8990$, and $k_3 = -3.9033$. The large magnitude of $k_3$ indicated unreliable calibration, primarily due to incomplete field-of-view coverage during image acquisition. The distorted checkerboard did not sufficiently span the full image region, resulting in unstable parameter estimation. Consequently, manual calibration was deemed unsuitable for this setup.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.45\linewidth]{chess_rs_calibration.jpg}
+    \caption{6x7 Chessboard calibration setup for Intel RealSense D435i, causing unreliable parameter estimation due to incomplete field-of-view coverage.}
+    \label{fig:calibration_chess_setup}
+\end{figure}
+Given that the Intel RealSense D435 is factory calibrated and provides intrinsic parameters through the ROS \texttt{/camera\_info} topic, the initial approach was to leverage the built-in camera intrinsics together with the librealsense deprojection function. Specifically, the implementation experimented with \texttt{rs2\_deproject\_pixel\_to\_point()}, which converts a 2D pixel coordinate and its associated depth value into a 3D point in the camera coordinate frame. The required inputs include the intrinsic parameters (focal lengths $f_x$, $f_y$, principal point $p_x$, $p_y$, and distortion coefficients), the pixel coordinate $(u,v)$, and the depth value extracted from the aligned depth image.
+
+Since the RealSense coordinate system differs from the ROS coordinate convention, a coordinate transformation was implemented to ensure compatibility with RViz visualization and downstream robotic manipulation tasks. The mapping follows:
+\[
+X_{ROS} = Z_{RS}, \quad
+Y_{ROS} = -X_{RS}, \quad
+Z_{ROS} = -Y_{RS}
+\]
+aligning the forward, left, and upward directions according to ROS standards.
+
+To evaluate accuracy, a benchmarking experiment was conducted using a green box placed within the camera workspace as a physical reference object. The real-world distance was measured manually and compared against the output from the pixel-to-real-world service. Multiple trials were performed to compute absolute error and mean absolute error for quantitative validation. The experimental setup is illustrated in Figure~\ref{fig:calibration_vision_setup}.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.45\linewidth]{calibration_vision_setup.jpg}
+    \caption{Calibration setup showing the green and pink box used for validating pixel-to-real-world coordinate accuracy.}
+    \label{fig:calibration_vision_setup}
+\end{figure}
+
+Although the deprojection logic using \texttt{rs2\_deproject\_pixel\_to\_point()} was successfully implemented, repeated camera initialization issues were encountered during runtime. These failures were primarily caused by device access conflicts and pipeline re-initialization when multiple ROS nodes attempted to access the camera stream simultaneously. As a result, the SDK-based approach was deemed unstable for the current system configuration.
+
+Due to project timeline constraints and the need to prioritize integration with the robot motion planning module, the implementation was temporarily shifted to a more stable and controllable method based on explicit geometric computation using the pinhole camera model. Instead of relying on SDK-level deprojection, 3D coordinates were computed analytically from intrinsic parameters and depth values using standard perspective projection equations:
+\[
+X = \frac{(u - p_x)Z}{f_x}, \quad
+Y = \frac{(v - p_y)Z}{f_y}, \quad
+Z = Z
+\]
+where $(u,v)$ represents the pixel coordinate, $Z$ is the measured depth value, and $(f_x, f_y, p_x, p_y)$ are intrinsic parameters obtained from the camera calibration. The SDK-based deprojection approach will be revisited in future work once system-level camera access and synchronization issues are resolved.
+
+Experimental validation was performed using ten objects placed at ten different locations within the working space. All measurements were conducted using the Intel RealSense D435i depth camera after calibration alignment. The computed real-world coordinates were compared against manually measured ground-truth values. The evaluation resulted in a Root Mean Square Error (RMSE) of $0.0494$~m. While this result demonstrates functional consistency of the geometric transformation approach, further refinement is required to improve accuracy and reduce residual error within the workspace.
+
+Furthermore, the \texttt{pixel\_to\_real\_world} service was integrated into the \texttt{find\_service} module. This integration enables the system to detect an object in the RGB image, extract its pixel location, compute its 3D coordinate using geometric transformation, and return the position relative to the Universal Robots (UR) arm base frame. The UR arm origin is defined as $(0,0,0)$, while the calibrated depth camera position relative to the robot base is $(0, -0.5442, 0.6711)$. The final world coordinate is therefore computed by combining camera-frame coordinates with the fixed extrinsic transformation between the camera and robot base.
+
+Although the geometric model provided a stable solution for integration with the robot planning module, further improvements are planned. In particular, additional investigation into the RealSense SDK-based deprojection method will be conducted when time permits, with the objective of resolving the previous camera initialization conflicts and potentially improving overall spatial accuracy.
+
+The coordinate transformation process is illustrated in Figure~\ref{fig:pixel_to_world_pipeline}, showing the image-space detection alongside its corresponding 3D 
+(x,y,z) coordinate output in the robot reference frame.
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.5\linewidth]{find_object_real_world.jpg}
+    \caption{Image for converting detected bounding box pixel into UR arm base-frame coordinates using geometric transformation and calibrated camera extrinsics.}
+    \label{fig:pixel_to_world_pipeline}
+\end{figure}
+
+This approach provided greater stability during integration with real world testing and ensured deterministic behavior without camera reinitialization conflicts. Ongoing improvements focus on refining extrinsic calibration and reducing cumulative transformation error.
+
 
 \subsubsection{Speech}
 
@@ -392,6 +456,8 @@ The project is structured around four primary technical area of concentration ex
 \subsection{Current Timeline}
 
 \subsubsection{Image Processing}
+
+The current progress is on schedule. Since the primary focus has been on integrating the depth camera with real-world perception, the overall vision pipeline has become more stable while initial calibration and pixel-to-real-world transformation have been successfully implemented. The system is capable of producing consistent 3D coordinate outputs, although minor inaccuracies remain due to calibration sensitivity and depth noise. Ongoing experimentation and iterative testing aim to refine camera parameters, improve transformation reliability, and reduce measurement error. Development is progressing toward a fully calibrated perception module that will be ready for quantitative benchmarking of the vision component once calibration is finalized.
 
 \subsubsection{Speech Processing}
 
