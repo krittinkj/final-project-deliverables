@@ -361,59 +361,11 @@ Overall, this approach increases reliability, efficiency, and system control whi
 
 \subsubsection{Hardware}
 
-At the current stage of development, the hardware infrastructure for the vision-guided manipulation system has been partially implemented and validated within a controlled laboratory environment. The system is built around a Universal Robots (UR) collaborative robotic arm mounted on a fixed experimental table.
+During system testing, we encountered a problem with the official UR ROS2 driver used to control the UR3e arm. After investigating the issue, we found that it corresponds to an open bug in the official driver that affects motion execution reliability~\cite{ur-driver-issue}. Since the issue remains unresolved and its timeline is uncertain, relying solely on the driver introduces a potential risk to system stability.
 
-To enable perception-driven manipulation, a depth camera holder was mechanically installed at the base of the UR arm. The mounting structure was secured to ensure positional stability and minimize vibration during operation. An Intel RealSense D435i depth camera was attached to the holder and connected to the processing unit via a USB interface.
+To mitigate this risk, we implemented a backup control mechanism by developing a new implementation of the \texttt{low\_level\_planner\_executor} node that communicates with the robot using \textit{URScript}. URScript is the native scripting language used by Universal Robots controllers, designed to directly command robot motion, gripper actions, and I/O operations through programmatic instructions executed by the robot controlle~\cite{ur-script}.
 
-To accommodate the physical distance between the camera mounting location and the processing workstation, an extended USB cable was procured. The cable was routed carefully to avoid interference with the robot's operational workspace and to ensure safe operation during manipulation tasks.
-
-Since the Intel RealSense D435i requires USB~3.0 bandwidth for stable RGB and depth data streaming, a USB~3.0-compatible hub/dongle was integrated to guarantee interface compatibility with the host system. This configuration ensured sufficient data transfer rates for real-time image acquisition without frame drops or communication instability. The connectivity setup was validated during continuous operation tests.
-
-A blue board was placed within the robot's workspace to serve as a controlled visual background. This improves contrast for the perception node and reduces noise in segmentation and depth estimation tasks. The physical installation of the camera mount and workspace preparation is shown in Figure~\ref{fig:camera_mount_setup}.
-
-\begin{figure}[htbp]
-    \centering
-    \includegraphics[width=0.4\linewidth]{camera_mount_setup.jpg}
-    \caption{Experimental hardware setup showing the installed depth camera mount at the UR arm base and the blue board placed within the manipulation workspace.}
-    \label{fig:camera_mount_setup}
-\end{figure}
-
-\paragraph{Coordinate System Definition}
-
-To enable consistent spatial reasoning between perception and manipulation modules, a unified coordinate reference frame was defined. All coordinates are expressed relative to the origin located at the center of the UR arm base.
-
-The reference points are defined as follows:
-
-\begin{itemize}
-    \item \textbf{UR Arm Base (Origin):} $(0,0,0)$
-    \item \textbf{Depth Camera Position:} $(0,-0.5442,0.6711)$
-\end{itemize}
-
-The depth camera position specifies its spatial location relative to the robot base frame and was determined through direct physical measurement.
-
-The spatial configuration and key geometric measurements are illustrated in Figure~\ref{fig:hardware_measurement}. This explicit coordinate definition establishes the foundation for camera-to-robot transformation and pose estimation during manipulation tasks.
-
-\begin{figure}[htbp]
-    \centering
-    \includegraphics[width=0.9\linewidth]{measurement_setup.jpg}
-    \caption{Hardware measurement setup showing the UR arm base reference frame, depth camera position, table height, and spatial offsets. All coordinates are defined relative to the UR arm base origin $(0,0,0)$.}
-    \label{fig:hardware_measurement}
-\end{figure}
-
-\paragraph{Key Physical Measurements}
-
-Several physical parameters were measured to validate spatial consistency within the perception-to-action pipeline. These measurements were required to ensure accurate transformation between camera coordinates and the robot base frame.
-
-The primary measured values include:
-
-\begin{itemize}
-    \item Vertical distance from UR base to camera mount
-    \item Horizontal offset between camera and robot base center
-    \item Table height relative to robot base
-\end{itemize}
-
-These parameters were incorporated into the system calibration process and are reflected in the coordinate definitions provided above.
-
+Instead of relying on the ROS2 driver abstraction, this node sends URScript commands directly to the robot's \textit{URControl} interface using TCP/IP socket communication. This approach follows the standard external control mechanism supported by Universal Robots and allows motion commands to be executed without the ROS2 driver middleware. The method is also consistent with techniques introduced in earlier coursework, where URScript programs are transmitted over a socket connection to the robot controller.
 
 \newpage
 \section{Project Planning}
