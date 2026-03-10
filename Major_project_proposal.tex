@@ -470,8 +470,10 @@ The current progress is on schedule. Since the primary focus has been on integra
 
 Progress is slightly behind the planned schedule. The team has procured the required microphone and supporting hardware, but the text-to-speech development is moving slower than expected while effort is directed toward migrating the overall system from simulation to physical hardware.
 
-\subsubsection{Planning Algorithm}
-The current progress is on schedule. Since the primary focus has been on transitioning from simulation to hardware, the planning architecture remains stable while improvements have been made to PDDL generation through enhanced prompt engineering and flexible template-based approaches. The system can now generate more robust task plans for sequential operations, though ongoing work aims to address API usage constraints and improve scalability. Development continues toward seamless integration of high-level planning with the perception and execution modules within the hierarchical system architecture.
+\subsubsection{Planning Process}
+The current progress is on schedule. Based on testing results, the automatic PDDL generation pipeline has been improved by introducing a structured intermediate representation (IR) instead of directly generating PDDL code. This change has reduced syntax errors, improved interpretability, and lowered token usage.
+
+Future work will focus on further refining the system and benchmarking the planning pipeline across different task scenarios to evaluate robustness and efficiency.
 
 
 \subsubsection{Interface with Robot Arm}
