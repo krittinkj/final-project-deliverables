@@ -5,12 +5,47 @@
 \usepackage{graphicx}
 \usepackage{float}
 \usepackage{listings}
+\usepackage{xcolor}
 \usepackage{hyperref}
 \usepackage{siunitx}
 \usepackage{microtype}
 \usepackage{booktabs}
 \usepackage{makecell}
 \graphicspath{{images/}}
+
+\colorlet{punct}{red!60!black}
+\definecolor{background}{HTML}{EEEEEE}
+\definecolor{delim}{RGB}{20,105,176}
+\colorlet{numb}{magenta!60!black}
+
+\lstdefinelanguage{json}{
+    basicstyle=\normalfont\ttfamily,
+    numbers=left,
+    numberstyle=\scriptsize,
+    stepnumber=1,
+    numbersep=8pt,
+    showstringspaces=false,
+    breaklines=true,
+    frame=lines,
+    backgroundcolor=\color{background},
+    literate=
+     *{0}{{{\color{numb}0}}}{1}
+      {1}{{{\color{numb}1}}}{1}
+      {2}{{{\color{numb}2}}}{1}
+      {3}{{{\color{numb}3}}}{1}
+      {4}{{{\color{numb}4}}}{1}
+      {5}{{{\color{numb}5}}}{1}
+      {6}{{{\color{numb}6}}}{1}
+      {7}{{{\color{numb}7}}}{1}
+      {8}{{{\color{numb}8}}}{1}
+      {9}{{{\color{numb}9}}}{1}
+      {:}{{{\color{punct}{:}}}}{1}
+      {,}{{{\color{punct}{,}}}}{1}
+      {\{}{{{\color{delim}{\{}}}}{1}
+      {\}}{{{\color{delim}{\}}}}}{1}
+      {[}{{{\color{delim}{[}}}}{1}
+      {]}{{{\color{delim}{]}}}}{1},
+}
 
 \begin{document}
 
@@ -298,11 +333,84 @@ Progress on the speech module has remained steady but minimal. We have finalized
 
 \subsubsection{Planning}
 
-Since the main focus of the early part of the second semester is integrating and moving the setup from Gazebo simulation to actual hardware, the planning component has not undergone major architectural changes. However, we have conducted extensive research on PDDL generation approaches to understand the current state of the field and identify techniques that could improve our system's reliability and correctness. We surveyed recent work and found that most approaches share a common foundation: using LLMs for PDDL generation with different techniques such as prompt engineering, feedback loops, multi-shot prompting, and few-shot prompting. Even ontology-based approaches like PlanOwl~\cite{planowl} leverage ontologies for environmental knowledge representation but still rely on an LLM for the final PDDL generation step. We identified five principal approaches: LLM-based structured generation (ViLaIn~\cite{vilain}, Image2PDDL~\cite{image2pddl}, LLM+P~\cite{llm+p}), fine-tuned LLMs (PDDL-Instruct~\cite{pddl-instruct}), vision-to-symbolic pipelines (VeriGraph~\cite{verigraph}, SayPlan~\cite{sayplan}), neuro-symbolic domain learning (PDDLLM~\cite{pddllm}, UniDomain~\cite{unidomain}), and planner-in-the-loop multi-agent frameworks (SPCA~\cite{spca}, LLM Domain Generator~\cite{llm-domain-generators}). Our analysis reveals that while prompted LLM approaches are flexible, they suffer from hallucinated predicates, missing preconditions, and long-horizon consistency failures. Hybrid neuro-symbolic systems with planner-in-the-loop validation~\cite{pddllm,unidomain, spca} consistently outperform prompted-only methods, with critical correctness enforcement techniques including syntax validation through prompt templates, semantic validation via planner solvability checks, action validity through simulation rollouts, and logical reasoning verification.
+Our recent work in planning focuses on improving the robustness and efficiency of the automatic PDDL generation pipeline used by the high-level planner. Initially, the system relied on a large language model (LLM) to directly generate both the PDDL \texttt{domain} and \texttt{problem} files from a natural language instruction. While this approach demonstrated the feasibility of natural language to PDDL translation, it introduced several practical challenges.
 
-Informed by this research, we have improved our PDDL generation through enhanced prompt engineering and flexible template-based approaches. Previously, we used a static PDDL structure for robot actions and predicates. However, testing revealed that this approach lacked flexibility, and the LLM often struggled to model sequential tasks requiring modifications to action preconditions and effects. We now provide a manually created PDDL template in the system prompt that the LLM can reference and modify as needed, similar to the structured prompting strategies employed in Image2PDDL~\cite{image2pddl} and ViLaIn~\cite{vilain}. This change has improved performance in preliminary tests, though extensive evaluation is still required. We are also exploring planner-in-the-loop validation inspired by ViLaIn~\cite{vilain} and SPCA~\cite{spca} to catch semantic errors early.
+First, the LLM was required to produce syntactically correct PDDL code. Since PDDL is a strict formal language, minor formatting or syntax errors frequently resulted in invalid files that could not be parsed by the downstream deterministic planner. Second, providing detailed templates, examples, and generation guidelines in the system prompt significantly increased the number of input tokens required for each request. This caused frequent limitations when operating within free-tier token constraints. Finally, generating both the \texttt{domain} and \texttt{problem} files entirely through the LLM resulted in unnecessary output tokens, increasing computational overhead and response time.
 
-During testing, we encountered a practical constraint: for complex, multi-step instructions, we are hitting the input token limit of our LLM API's free tier. We plan to address this by either making our action primitives more complex to reduce function calls, making the medium-level planner more deterministic to limit API usage, and optimizing the system prompt. 
+To address these limitations, we redesigned the PDDL generation process based on our advisor's recommendation to introduce an \textit{intermediate representation} (IR) instead of directly generating PDDL code. In the updated architecture, the LLM produces a structured JSON representation of the task, which is then deterministically converted into a PDDL problem file using templating.
+
+JSON was selected as the intermediate representation because it is highly structured, human-readable, and easily parsed programmatically. Additionally, many modern LLM APIs also support \textit{structured output}, allowing the response schema to be explicitly defined and validated during generation rather than requiring manual parsing of free-form text.
+
+The JSON schema used in our system captures three essential elements of the planning problem: task-specific locations, objects present in the workspace, and the final goal predicates describing the desired world state. To ensure reliable structured outputs, we enforce a JSON schema during generation, which constrains the LLM response to a predefined format. The schema definition is shown in Listing~\ref{lst:ir-schema}.
+
+\begin{lstlisting}[
+    language=json, 
+    caption={JSON schema defining the intermediate representation (IR) used for task specification},
+    label={lst:ir-schema},
+]
+{
+  "type": "object",
+  "properties": {
+    "locations": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "objects": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "goals": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "predicate": { "type": "string" },
+          "args": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
+        },
+        "required": ["predicate", "args"]
+      }
+    }
+  },
+  "required": ["locations", "objects", "goals"]
+}
+\end{lstlisting}
+
+An example instance of the intermediate representation generated by the LLM is shown in Listing~\ref{lst:ir-example}. This structured representation is later parsed by deterministic code to generate the final PDDL problem file.
+
+\begin{lstlisting}[language=json, caption={Example intermediate representation generated by the LLM}, label={lst:ir-example}]
+{
+  "data": {
+    "locations": ["left-of-gear"],
+    "objects": ["gear", "bolt"],
+    "goals": [
+      {
+        "predicate": "gripper-close",
+        "args": []
+      }
+    ]
+  }
+}
+\end{lstlisting}
+
+In this representation, \texttt{locations} corresponds to task-specific spatial positions required for completing the instruction, \texttt{objects} lists the objects present in the workspace, and \texttt{goals} specifies the desired final state using predicates defined in the planning domain. Importantly, the goals list contains only final states rather than intermediate steps, allowing the symbolic planner to determine the sequence of actions required to reach the desired state.
+
+Once the LLM produces the JSON output, a deterministic parsing function extracts the relevant fields and injects them into a predefined PDDL \texttt{problem} template using the Jinja2 templating engine. This ensures that the generated PDDL file always conforms to the correct syntax and structure. Unlike the previous approach, the PDDL \texttt{domain} file is now fixed and manually defined, allowing tighter control over the available predicates and actions. While the current system uses a static domain definition, future work may explore dynamic domain adaptation if more complex tasks are required.
+
+Figure~\ref{fig:pddl-pipeline} illustrates the comparison between the previous and updated PDDL generation pipelines. In the original design, the LLM directly produced full PDDL files. In the revised architecture, the LLM instead produces a structured intermediate representation that is deterministically transformed into the final PDDL problem file.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=\linewidth]{images/pddl_generation.png}
+    \caption{Comparison of the original and revised automatic PDDL generation pipelines}
+    \label{fig:pddl-pipeline}
+\end{figure}
+
+Preliminary evaluation indicates that this redesign significantly reduces syntax errors in generated planning problems, since the LLM is no longer responsible for producing raw PDDL code. The new pipeline also reduces both input and output token usage by removing large prompt templates and minimizing generated text. Furthermore, the intermediate JSON representation improves interpretability and debugging, as it provides a clear and structured description of the task before PDDL generation.
+
+Overall, this approach increases reliability, efficiency, and system control while preserving the flexibility of natural language task specification.
 
 \subsubsection{Hardware}
 
