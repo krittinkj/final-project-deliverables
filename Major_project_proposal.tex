@@ -364,7 +364,7 @@ Overall, this approach increases reliability, efficiency, and system control whi
 
 During system testing, we encountered an issue with the official UR ROS2 driver used to control the UR3e arm. After investigating the problem, we found that it corresponds to an open bug in the driver that affects the reliability of motion execution~\cite{ur-driver-issue}. Because the issue remains unresolved and the timeline for a fix is uncertain, relying solely on the driver poses a potential risk to the stability of the system.
 
-To mitigate this risk, we implemented a backup control mechanism by developing an alternative implementation of the \texttt{low\_level\_planner\_executor} node that communicates with the robot using \textit{URScript}. URScript is the native scripting language of Universal Robots controllers, designed to directly command robot motion, gripper actions, and I/O operations through programmatic instructions executed by the robot controller~\cite{ur-script}.
+To mitigate this risk, we implemented a backup control mechanism by developing an alternative implementation of the \texttt{low\_level\_planner\_executor} node that communicates with the robot using \textit{URScript}. URScript is the native scripting language of Universal Robots controllers, designed to directly command robot motion, gripper actions, and I/O operations through programmatic instructions executed by the robot controller~\cite{urscript-docs}.
 
 Rather than relying on the ROS2 driver abstraction layer, this node sends URScript commands directly to the robot’s \textit{URControl} interface via TCP/IP socket communication. This approach follows the standard external control mechanism supported by Universal Robots and enables motion commands to be executed without the ROS2 driver middleware. The method is also consistent with techniques introduced in earlier coursework, where URScript programs are transmitted over a socket connection to the robot controller.
 
@@ -815,6 +815,44 @@ The capabilities of AI image processing are broad and impactful, including accur
 
 The Universal Robots (UR) robotic arm is a widely adopted collaborative robotic manipulator (cobot) designed for flexible deployment in industrial, engineering, and research settings. Unlike traditional industrial robots, UR arms are specifically engineered to operate safely alongside humans without requiring extensive physical barriers, thanks to their integrated safety features, lightweight design, and force-limiting mechanisms. These properties make UR arms particularly suitable for human-robot collaboration in dynamic environments such as manufacturing, assembly, and tool-handling applications.
 From a technical perspective, UR arms employ high-precision servo motors and torque sensors at each joint, enabling six degrees of freedom for dexterous manipulation tasks. Their kinematic flexibility allows execution of both structured and unstructured manipulation tasks, such as grasping, tool usage, and assembly operations. Additionally, UR arms are equipped with programmable interfaces, including graphical user interfaces (GUI), teach pendants, and increasingly, APIs compatible with external AI systems~\cite{urarm}. This enables integration with higher-level control architectures, such as neuro-symbolic AI (NSAI) or large language models (LLMs), for advanced planning, reasoning, and adaptive execution.
+
+\subsection{URScript}
+
+URScript is the native scripting language developed by Universal Robots for programming and controlling their collaborative robotic arms. It provides a textual programming interface that allows users to control robot motion, interact with sensors and I/O devices, and integrate the robot with external software systems. In the Universal Robots ecosystem, programs created through the graphical programming interface \textit{PolyScope} are internally translated into URScript commands, which are then executed by the robot controller~\cite{urscript-docs}. Consequently, URScript represents the fundamental low-level interface used by the controller to perform robot operations.
+
+\subsubsection*{Overall architecture}
+
+Universal Robots systems can be controlled at two main levels: the graphical user interface level through PolyScope, and the script level through URScript~\cite{urscript-manual}. At the script level, programs are written as text-based instructions that are interpreted by the robot controller (URControl). URControl runs as a service on the robot's control computer and executes commands sent either from PolyScope or from an external client over a TCP/IP connection.
+
+URScript programs can therefore be executed in multiple ways:
+\begin{itemize}
+\item Directly within PolyScope using script nodes embedded in a graphical program.
+\item As standalone script files executed by the robot controller.
+\item Remotely from external computers by sending URScript commands over a network socket to the robot controller.
+\end{itemize}
+
+This architecture allows URScript to serve both as a low-level control interface and as an integration mechanism for external software frameworks such as ROS or custom control applications.
+
+\subsubsection*{Core language features}
+
+URScript is designed as a high-level scripting language with a syntax similar to Python, making it relatively easy to learn for users familiar with modern programming languages. The language includes common programming constructs such as variables, functions, and control-flow statements, enabling developers to implement complex robotic behaviours.
+
+\paragraph{Variables and data types}
+URScript supports several basic data types including integers, floating-point numbers, booleans, lists, and poses. Pose data types are particularly important in robotics applications, as they represent the position and orientation of the robot's tool center point (TCP) in Cartesian space.
+
+\paragraph{Control structures}
+The language provides standard control-flow constructs such as \texttt{if} statements, loops, and function definitions. These constructs allow users to create structured programs and reusable subroutines that organize complex robot behaviours.
+
+\paragraph{Motion commands}
+A key feature of URScript is its built-in motion control functions. Commands such as \texttt{movej}, \texttt{movel}, and \texttt{movep} allow the robot to move between poses using joint-space, linear, or process-oriented trajectories. These commands typically include parameters for velocity, acceleration, and blending radius, enabling precise control of robot motion.
+
+\paragraph{I/O and sensor interaction}
+URScript also provides functions for interacting with the robot's digital and analog I/O interfaces. These functions allow the program to read sensor signals, control external devices such as grippers or conveyors, and synchronize robot actions with other equipment in an automated system.
+
+\paragraph{External communication}
+Another important capability of URScript is communication with external systems through network protocols such as TCP/IP sockets or industrial communication standards like Modbus TCP. This functionality enables integration with higher-level control software, PLCs, and robotic frameworks.
+
+Overall, URScript provides a flexible and powerful mechanism for controlling Universal Robots manipulators, enabling both simple task programming and advanced integration with external robotic software systems. In many applications, URScript is used as the underlying execution layer for commands generated by higher-level frameworks such as ROS-based drivers or custom control software.
 
 
 \newpage
