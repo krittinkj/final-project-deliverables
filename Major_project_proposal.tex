@@ -5,12 +5,48 @@
 \usepackage{graphicx}
 \usepackage{float}
 \usepackage{listings}
+\usepackage{xcolor}
 \usepackage{hyperref}
 \usepackage{siunitx}
 \usepackage{microtype}
 \usepackage{booktabs}
 \usepackage{makecell}
+\usepackage{amsmath}
 \graphicspath{{images/}}
+
+\colorlet{punct}{red!60!black}
+\definecolor{background}{HTML}{EEEEEE}
+\definecolor{delim}{RGB}{20,105,176}
+\colorlet{numb}{magenta!60!black}
+
+\lstdefinelanguage{json}{
+    basicstyle=\normalfont\ttfamily,
+    numbers=left,
+    numberstyle=\scriptsize,
+    stepnumber=1,
+    numbersep=8pt,
+    showstringspaces=false,
+    breaklines=true,
+    frame=lines,
+    backgroundcolor=\color{background},
+    literate=
+     *{0}{{{\color{numb}0}}}{1}
+      {1}{{{\color{numb}1}}}{1}
+      {2}{{{\color{numb}2}}}{1}
+      {3}{{{\color{numb}3}}}{1}
+      {4}{{{\color{numb}4}}}{1}
+      {5}{{{\color{numb}5}}}{1}
+      {6}{{{\color{numb}6}}}{1}
+      {7}{{{\color{numb}7}}}{1}
+      {8}{{{\color{numb}8}}}{1}
+      {9}{{{\color{numb}9}}}{1}
+      {:}{{{\color{punct}{:}}}}{1}
+      {,}{{{\color{punct}{,}}}}{1}
+      {\{}{{{\color{delim}{\{}}}}{1}
+      {\}}{{{\color{delim}{\}}}}}{1}
+      {[}{{{\color{delim}{[}}}}{1}
+      {]}{{{\color{delim}{]}}}}{1},
+}
 
 \begin{document}
 
@@ -227,70 +263,17 @@ For this project, we aim to contribute to this progress by addressing some of th
 
 \subsubsection{Vision}
 
-The current progress of the perception module focuses on stabilizing the object detection pipeline integrated with the Intel RealSense D435 depth camera in order to convert 2D image pixels into accurate 3D real-world coordinates using ROS~2 and the librealsense SDK. The development process involved three major phases: environment stabilization, perception debugging, and implementation of the pixel-to-real transformation service.
+Recent work on the vision module focused on improving scene understanding and handling multiple instances of the same object. Two new ROS2 services were added.
 
-During the initial setup, a Python dependency conflict was encountered due to a version mismatch of \texttt{setuptools}. The virtual environment (\texttt{vision\_venv}) required version 59.6.0, whereas the global user-site installation contained version 80.10.2. This discrepancy caused package uninstall errors and environment instability because Python referenced user-site packages even inside the virtual environment. The issue was resolved by isolating the environment using \texttt{PYTHONNOUSERSITE=1} and removing conflicting global packages. After this adjustment, dependency resolution and package management became stable.
+\textbf{Scene Understanding via VQA}
+We implemented \texttt{/vision/vqa}, a service that enables open-ended scene understanding using the Vision-Language Model \texttt{qwen3-vl:8b} running locally via Ollama. The service accepts a natural-language prompt and returns the model’s response based on the live RGB camera feed.
 
-Subsequently, issues were observed in the visualization pipeline where the GraspNet and Scene Understanding windows appeared black and unresponsive, despite successful ROS topic publishing from \texttt{/camera/color/image\_raw} and verified QoS compatibility. Depth and RGB streams were confirmed functional, and CvBridge conversion was inspected. The root cause was identified as a version mismatch between the system-installed \texttt{cv\_bridge} package and the locally used OpenCV version. Since \texttt{cv\_bridge} was compiled against a different OpenCV build, runtime incompatibility occurred. To ensure consistency, the \texttt{vision\_opencv} repository was cloned and compiled from source against the specific OpenCV version used in the project. The CMake configuration was explicitly linked with the correct OpenCV library. After rebuilding the workspace, image visualization was restored and the perception pipeline became stable.
+The \texttt{high\_level\_planner} calls this service at startup with the prompt: \textit{“Describe the scene, including what objects exist and how many of each object.”} This provides an initial description of the workspace. The service is also exposed as a tool that the \texttt{high\_level\_planner} can call to query additional information about the scene during execution.
 
-An additional issue occurred within the CLIP classifier node, producing the error \texttt{AttributeError: 'BaseModelOutputWithPooling' object has no attribute 'norm'}. This was traced to incompatibility between the HuggingFace CLIP implementation and the expected OpenAI CLIP API behavior in the pipeline. The solution was to replace the HuggingFace implementation with the original OpenAI CLIP repository installed directly from source. After this modification, object classification functionality was restored without further runtime errors.
+\textbf{Multi-Object Detection}
+We added \texttt{/vision/find\_multi\_object}, extending the existing \texttt{/vision/find\_object} service. The original service segments objects using SAM and identifies the object matching a given label via CLIP similarity search, returning a single bounding box.
 
-For the pixel-to-real world coordinate conversion, the initial implementation relied on a ratio-based scaling approach derived from simulation measurements. This method estimated real-world distances by referencing known dimensions within the simulated environment and computing a pixel-to-world scaling factor. However, this approach was environment-dependent, lacked generalizability, and produced limited accuracy when transitioning to real hardware.
-
-A manual camera calibration procedure was attempted using a $6\times7$ chessboard pattern. The resulting distortion coefficients were $k_1 = 0.0187$, $k_2 = 0.8990$, and $k_3 = -3.9033$. The large magnitude of $k_3$ indicated unreliable calibration, primarily due to incomplete field-of-view coverage during image acquisition. The distorted checkerboard did not sufficiently span the full image region, resulting in unstable parameter estimation. Consequently, manual calibration was deemed unsuitable for this setup.
-
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.45\linewidth]{chess_rs_calibration.jpg}
-    \caption{6x7 Chessboard calibration setup for Intel RealSense D435i, causing unreliable parameter estimation due to incomplete field-of-view coverage.}
-    \label{fig:calibration_chess_setup}
-\end{figure}
-Given that the Intel RealSense D435 is factory calibrated and provides intrinsic parameters through the ROS \texttt{/camera\_info} topic, the initial approach was to leverage the built-in camera intrinsics together with the librealsense deprojection function. Specifically, the implementation experimented with \texttt{rs2\_deproject\_pixel\_to\_point()}, which converts a 2D pixel coordinate and its associated depth value into a 3D point in the camera coordinate frame. The required inputs include the intrinsic parameters (focal lengths $f_x$, $f_y$, principal point $p_x$, $p_y$, and distortion coefficients), the pixel coordinate $(u,v)$, and the depth value extracted from the aligned depth image.
-
-Since the RealSense coordinate system differs from the ROS coordinate convention, a coordinate transformation was implemented to ensure compatibility with RViz visualization and downstream robotic manipulation tasks. The mapping follows:
-\[
-X_{ROS} = Z_{RS}, \quad
-Y_{ROS} = -X_{RS}, \quad
-Z_{ROS} = -Y_{RS}
-\]
-aligning the forward, left, and upward directions according to ROS standards.
-
-To evaluate accuracy, a benchmarking experiment was conducted using a green box placed within the camera workspace as a physical reference object. The real-world distance was measured manually and compared against the output from the pixel-to-real-world service. Multiple trials were performed to compute absolute error and mean absolute error for quantitative validation. The experimental setup is illustrated in Figure~\ref{fig:calibration_vision_setup}.
-
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.45\linewidth]{calibration_vision_setup.jpg}
-    \caption{Calibration setup showing the green and pink box used for validating pixel-to-real-world coordinate accuracy.}
-    \label{fig:calibration_vision_setup}
-\end{figure}
-
-Although the deprojection logic using \texttt{rs2\_deproject\_pixel\_to\_point()} was successfully implemented, repeated camera initialization issues were encountered during runtime. These failures were primarily caused by device access conflicts and pipeline re-initialization when multiple ROS nodes attempted to access the camera stream simultaneously. As a result, the SDK-based approach was deemed unstable for the current system configuration.
-
-Due to project timeline constraints and the need to prioritize integration with the robot motion planning module, the implementation was temporarily shifted to a more stable and controllable method based on explicit geometric computation using the pinhole camera model. Instead of relying on SDK-level deprojection, 3D coordinates were computed analytically from intrinsic parameters and depth values using standard perspective projection equations:
-\[
-X = \frac{(u - p_x)Z}{f_x}, \quad
-Y = \frac{(v - p_y)Z}{f_y}, \quad
-Z = Z
-\]
-where $(u,v)$ represents the pixel coordinate, $Z$ is the measured depth value, and $(f_x, f_y, p_x, p_y)$ are intrinsic parameters obtained from the camera calibration. The SDK-based deprojection approach will be revisited in future work once system-level camera access and synchronization issues are resolved.
-
-Experimental validation was performed using ten objects placed at ten different locations within the working space. All measurements were conducted using the Intel RealSense D435i depth camera after calibration alignment. The computed real-world coordinates were compared against manually measured ground-truth values. The evaluation resulted in a Root Mean Square Error (RMSE) of $0.0494$~m. While this result demonstrates functional consistency of the geometric transformation approach, further refinement is required to improve accuracy and reduce residual error within the workspace.
-
-Furthermore, the \texttt{pixel\_to\_real\_world} service was integrated into the \texttt{find\_service} module. This integration enables the system to detect an object in the RGB image, extract its pixel location, compute its 3D coordinate using geometric transformation, and return the position relative to the Universal Robots (UR) arm base frame. The UR arm origin is defined as $(0,0,0)$, while the calibrated depth camera position relative to the robot base is $(0, -0.5442, 0.6711)$. The final world coordinate is therefore computed by combining camera-frame coordinates with the fixed extrinsic transformation between the camera and robot base.
-
-Although the geometric model provided a stable solution for integration with the robot planning module, further improvements are planned. In particular, additional investigation into the RealSense SDK-based deprojection method will be conducted when time permits, with the objective of resolving the previous camera initialization conflicts and potentially improving overall spatial accuracy.
-
-The coordinate transformation process is illustrated in Figure~\ref{fig:pixel_to_world_pipeline}, showing the image-space detection alongside its corresponding 3D 
-(x,y,z) coordinate output in the robot reference frame.
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.5\linewidth]{find_object_real_world.jpg}
-    \caption{Image for converting detected bounding box pixel into UR arm base-frame coordinates using geometric transformation and calibrated camera extrinsics.}
-    \label{fig:pixel_to_world_pipeline}
-\end{figure}
-
-This approach provided greater stability during integration with real world testing and ensured deterministic behavior without camera reinitialization conflicts. Ongoing improvements focus on refining extrinsic calibration and reducing cumulative transformation error.
-
+The new service returns the top-$k$ bounding boxes ranked by similarity score, where $k$ is specified in the request. This allows the system to detect multiple instances of the same object in the workspace.
 
 \subsubsection{Speech}
 
@@ -298,67 +281,150 @@ Progress on the speech module has remained steady but minimal. We have finalized
 
 \subsubsection{Planning}
 
-Since the main focus of the early part of the second semester is integrating and moving the setup from Gazebo simulation to actual hardware, the planning component has not undergone major architectural changes. However, we have conducted extensive research on PDDL generation approaches to understand the current state of the field and identify techniques that could improve our system's reliability and correctness. We surveyed recent work and found that most approaches share a common foundation: using LLMs for PDDL generation with different techniques such as prompt engineering, feedback loops, multi-shot prompting, and few-shot prompting. Even ontology-based approaches like PlanOwl~\cite{planowl} leverage ontologies for environmental knowledge representation but still rely on an LLM for the final PDDL generation step. We identified five principal approaches: LLM-based structured generation (ViLaIn~\cite{vilain}, Image2PDDL~\cite{image2pddl}, LLM+P~\cite{llm+p}), fine-tuned LLMs (PDDL-Instruct~\cite{pddl-instruct}), vision-to-symbolic pipelines (VeriGraph~\cite{verigraph}, SayPlan~\cite{sayplan}), neuro-symbolic domain learning (PDDLLM~\cite{pddllm}, UniDomain~\cite{unidomain}), and planner-in-the-loop multi-agent frameworks (SPCA~\cite{spca}, LLM Domain Generator~\cite{llm-domain-generators}). Our analysis reveals that while prompted LLM approaches are flexible, they suffer from hallucinated predicates, missing preconditions, and long-horizon consistency failures. Hybrid neuro-symbolic systems with planner-in-the-loop validation~\cite{pddllm,unidomain, spca} consistently outperform prompted-only methods, with critical correctness enforcement techniques including syntax validation through prompt templates, semantic validation via planner solvability checks, action validity through simulation rollouts, and logical reasoning verification.
+Our recent work in planning focuses on improving the robustness and efficiency of the automatic PDDL generation pipeline used by the high-level planner. Initially, the system relied on a large language model (LLM) to directly generate both the PDDL \texttt{domain} and \texttt{problem} files from a natural language instruction. While this approach demonstrated the feasibility of natural language to PDDL translation, it introduced several practical challenges.
 
-Informed by this research, we have improved our PDDL generation through enhanced prompt engineering and flexible template-based approaches. Previously, we used a static PDDL structure for robot actions and predicates. However, testing revealed that this approach lacked flexibility, and the LLM often struggled to model sequential tasks requiring modifications to action preconditions and effects. We now provide a manually created PDDL template in the system prompt that the LLM can reference and modify as needed, similar to the structured prompting strategies employed in Image2PDDL~\cite{image2pddl} and ViLaIn~\cite{vilain}. This change has improved performance in preliminary tests, though extensive evaluation is still required. We are also exploring planner-in-the-loop validation inspired by ViLaIn~\cite{vilain} and SPCA~\cite{spca} to catch semantic errors early.
+First, the LLM was required to produce syntactically correct PDDL code. Since PDDL is a strict formal language, minor formatting or syntax errors frequently resulted in invalid files that could not be parsed by the downstream deterministic planner. Second, providing detailed templates, examples, and generation guidelines in the system prompt significantly increased the number of input tokens required for each request. This caused frequent limitations when operating within free-tier token constraints. Finally, generating both the \texttt{domain} and \texttt{problem} files entirely through the LLM resulted in unnecessary output tokens, increasing computational overhead and response time.
 
-During testing, we encountered a practical constraint: for complex, multi-step instructions, we are hitting the input token limit of our LLM API's free tier. We plan to address this by either making our action primitives more complex to reduce function calls, making the medium-level planner more deterministic to limit API usage, and optimizing the system prompt. 
+To address these limitations, we redesigned the PDDL generation process based on our advisor's recommendation to introduce an \textit{intermediate representation} (IR) instead of directly generating PDDL code. In the updated architecture, the LLM produces a structured JSON representation of the task, which is then deterministically converted into a PDDL problem file using templating.
+
+JSON was selected as the intermediate representation because it is highly structured, human-readable, and easily parsed programmatically. Additionally, many modern LLM APIs also support \textit{structured output}, allowing the response schema to be explicitly defined and validated during generation rather than requiring manual parsing of free-form text.
+
+The JSON schema used in our system captures three essential elements of the planning problem: task-specific locations, objects present in the workspace, and the final goal predicates describing the desired world state. To ensure reliable structured outputs, we enforce a JSON schema during generation, which constrains the LLM response to a predefined format. The schema definition is shown in Listing~\ref{lst:ir-schema}.
+
+\begin{lstlisting}[
+    language=json, 
+    caption={JSON schema defining the intermediate representation (IR) used for task specification},
+    label={lst:ir-schema},
+]
+{
+  "type": "object",
+  "properties": {
+    "locations": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "objects": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "goals": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "predicate": { "type": "string" },
+          "args": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
+        },
+        "required": ["predicate", "args"]
+      }
+    }
+  },
+  "required": ["locations", "objects", "goals"]
+}
+\end{lstlisting}
+
+An example instance of the intermediate representation generated by the LLM is shown in Listing~\ref{lst:ir-example}. This structured representation is later parsed by deterministic code to generate the final PDDL problem file.
+
+\begin{lstlisting}[language=json, caption={Example intermediate representation generated by the LLM}, label={lst:ir-example}]
+{
+  "data": {
+    "locations": ["left-of-gear"],
+    "objects": ["gear", "bolt"],
+    "goals": [
+      {
+        "predicate": "gripper-close",
+        "args": []
+      }
+    ]
+  }
+}
+\end{lstlisting}
+
+In this representation, \texttt{locations} corresponds to task-specific spatial positions required for completing the instruction, \texttt{objects} lists the objects present in the workspace, and \texttt{goals} specifies the desired final state using predicates defined in the planning domain. Importantly, the goals list contains only final states rather than intermediate steps, allowing the symbolic planner to determine the sequence of actions required to reach the desired state.
+
+Once the LLM produces the JSON output, a deterministic parsing function extracts the relevant fields and injects them into a predefined PDDL \texttt{problem} template using the Jinja2 templating engine. This ensures that the generated PDDL file always conforms to the correct syntax and structure. Unlike the previous approach, the PDDL \texttt{domain} file is now fixed and manually defined, allowing tighter control over the available predicates and actions. While the current system uses a static domain definition, future work may explore dynamic domain adaptation if more complex tasks are required.
+
+Figure~\ref{fig:pddl-pipeline} illustrates the comparison between the previous and updated PDDL generation pipelines. In the original design, the LLM directly produced full PDDL files. In the revised architecture, the LLM instead produces a structured intermediate representation that is deterministically transformed into the final PDDL problem file.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=\linewidth]{images/pddl_generation.png}
+    \caption{Comparison of the original and revised automatic PDDL generation pipelines}
+    \label{fig:pddl-pipeline}
+\end{figure}
+
+Preliminary evaluation indicates that this redesign significantly reduces syntax errors in generated planning problems, since the LLM is no longer responsible for producing raw PDDL code. The new pipeline also reduces both input and output token usage by removing large prompt templates and minimizing generated text. Furthermore, the intermediate JSON representation improves interpretability and debugging, as it provides a clear and structured description of the task before PDDL generation.
+
+Overall, this approach increases reliability, efficiency, and system control while preserving the flexibility of natural language task specification.
 
 \subsubsection{Hardware}
 
-At the current stage of development, the hardware infrastructure for the vision-guided manipulation system has been partially implemented and validated within a controlled laboratory environment. The system is built around a Universal Robots (UR) collaborative robotic arm mounted on a fixed experimental table.
+During system testing, we encountered an issue with the official UR ROS2 driver used to control the UR3e arm. After investigating the problem, we found that it corresponds to an open bug in the driver that affects the reliability of motion execution~\cite{ur-driver-issue}. Because the issue remains unresolved and the timeline for a fix is uncertain, relying solely on the driver poses a potential risk to the stability of the system.
 
-To enable perception-driven manipulation, a depth camera holder was mechanically installed at the base of the UR arm. The mounting structure was secured to ensure positional stability and minimize vibration during operation. An Intel RealSense D435i depth camera was attached to the holder and connected to the processing unit via a USB interface.
+To mitigate this risk, we implemented a backup control mechanism by developing an alternative implementation of the \texttt{low\_level\_planner\_executor} node that communicates with the robot using \textit{URScript}. URScript is the native scripting language of Universal Robots controllers, designed to directly command robot motion, gripper actions, and I/O operations through programmatic instructions executed by the robot controller~\cite{urscript-docs}.
 
-To accommodate the physical distance between the camera mounting location and the processing workstation, an extended USB cable was procured. The cable was routed carefully to avoid interference with the robot's operational workspace and to ensure safe operation during manipulation tasks.
+Rather than relying on the ROS2 driver abstraction layer, this node sends URScript commands directly to the robot’s \textit{URControl} interface via TCP/IP socket communication. This approach follows the standard external control mechanism supported by Universal Robots and enables motion commands to be executed without the ROS2 driver middleware. The method is also consistent with techniques introduced in earlier coursework, where URScript programs are transmitted over a socket connection to the robot controller.
 
-Since the Intel RealSense D435i requires USB~3.0 bandwidth for stable RGB and depth data streaming, a USB~3.0-compatible hub/dongle was integrated to guarantee interface compatibility with the host system. This configuration ensured sufficient data transfer rates for real-time image acquisition without frame drops or communication instability. The connectivity setup was validated during continuous operation tests.
+To maintain compatibility with the existing ROS2-side API, frame and orientation conversions were explicitly implemented within the \\\texttt{low\_level\_planner\_executor} node. This ensures that the same high-level Cartesian commands generated by the planner can still be executed correctly in the robot’s coordinate system, without requiring modifications to the ROS2 action interface or high-level planning components.
 
-A blue board was placed within the robot's workspace to serve as a controlled visual background. This improves contrast for the perception node and reduces noise in segmentation and depth estimation tasks. The physical installation of the camera mount and workspace preparation is shown in Figure~\ref{fig:camera_mount_setup}.
+Let the ROS2-side Cartesian position be
+\[
+\mathbf{p}_R=\begin{bmatrix}x_R\\y_R\\z_R\end{bmatrix},
+\]
+and the URScript-side position be \(\mathbf{p}_U\).  
+The ROS2 and UR frames are related by
+\[
+\mathbf{p}_U = \mathbf{T}\mathbf{p}_R,\qquad
+\mathbf{T}=\mathrm{diag}(-1,-1,1)=\mathbf{R}_z(\pi).
+\]
+Hence
+\[
+(x_U,y_U,z_U)=(-x_R,-y_R,z_R).
+\]
 
-\begin{figure}[htbp]
-    \centering
-    \includegraphics[width=0.4\linewidth]{camera_mount_setup.jpg}
-    \caption{Experimental hardware setup showing the installed depth camera mount at the UR arm base and the blue board placed within the manipulation workspace.}
-    \label{fig:camera_mount_setup}
-\end{figure}
+For orientation, ROS2 uses quaternions
+\[
+\mathbf{q}=(q_x,q_y,q_z,q_w),\qquad \|\mathbf{q}\|=1,
+\]
+while URScript uses rotation vector \(\mathbf{r}=(r_x,r_y,r_z)\), with
+\[
+\theta=\|\mathbf{r}\|,\quad \hat{\mathbf{u}}=\frac{\mathbf{r}}{\theta},\quad
+\mathbf{q}=\left(\hat{\mathbf{u}}\sin\frac{\theta}{2},\cos\frac{\theta}{2}\right).
+\]
+Conversely, for quaternion-to-rotation-vector conversion:
+\[
+\theta=2\arccos(q_w),\quad
+\mathbf{r}=
+\begin{cases}
+2(q_x,q_y,q_z), & \sqrt{1-q_w^2}<\varepsilon,\\[4pt]
+\theta\frac{(q_x,q_y,q_z)}{\sqrt{1-q_w^2}}, & \text{otherwise}.
+\end{cases}
+\]
 
-\paragraph{Coordinate System Definition}
+Frame conversion for absolute pose orientation is implemented via quaternion composition with a \(180^\circ\) rotation about \(z\):
+\[
+\mathbf{q}_T=(0,0,1,0),\qquad
+\mathbf{q}_U=\mathbf{q}_T\otimes \mathbf{q}_R,
+\]
+where \(\otimes\) denotes quaternion multiplication. Since \(\mathbf{q}_T^{-1}=\mathbf{q}_T\), the same transform maps in both directions (self-inverse frame map).
 
-To enable consistent spatial reasoning between perception and manipulation modules, a unified coordinate reference frame was defined. All coordinates are expressed relative to the origin located at the center of the UR arm base.
+For relative Cartesian commands \((\Delta x,\Delta y,\Delta z,\Delta\phi,\Delta\theta,\Delta\psi)\), the implemented mapping is
+\[
+(\Delta x_U,\Delta y_U,\Delta z_U)=(-\Delta x_R,-\Delta y_R,\Delta z_R),
+\]
+\[
+(\Delta\phi_U,\Delta\theta_U,\Delta\psi_U)=(\Delta\phi_R,\Delta\theta_R,-\Delta\psi_R),
+\]
+then composed as
+\[
+\mathbf{q}_{k+1}=\mathrm{normalize}\!\left(\mathbf{q}_k\otimes
+\mathbf{q}_{\Delta}(\Delta\phi_U,\Delta\theta_U,\Delta\psi_U)\right).
+\]
 
-The reference points are defined as follows:
-
-\begin{itemize}
-    \item \textbf{UR Arm Base (Origin):} $(0,0,0)$
-    \item \textbf{Depth Camera Position:} $(0,-0.5442,0.6711)$
-\end{itemize}
-
-The depth camera position specifies its spatial location relative to the robot base frame and was determined through direct physical measurement.
-
-The spatial configuration and key geometric measurements are illustrated in Figure~\ref{fig:hardware_measurement}. This explicit coordinate definition establishes the foundation for camera-to-robot transformation and pose estimation during manipulation tasks.
-
-\begin{figure}[htbp]
-    \centering
-    \includegraphics[width=0.9\linewidth]{measurement_setup.jpg}
-    \caption{Hardware measurement setup showing the UR arm base reference frame, depth camera position, table height, and spatial offsets. All coordinates are defined relative to the UR arm base origin $(0,0,0)$.}
-    \label{fig:hardware_measurement}
-\end{figure}
-
-\paragraph{Key Physical Measurements}
-
-Several physical parameters were measured to validate spatial consistency within the perception-to-action pipeline. These measurements were required to ensure accurate transformation between camera coordinates and the robot base frame.
-
-The primary measured values include:
-
-\begin{itemize}
-    \item Vertical distance from UR base to camera mount
-    \item Horizontal offset between camera and robot base center
-    \item Table height relative to robot base
-\end{itemize}
-
-These parameters were incorporated into the system calibration process and are reflected in the coordinate definitions provided above.
-
+This mathematical treatment ensures that direct URScript execution is kinematically consistent with the original ROS2-side API while removing dependence on the ROS2 driver middleware for runtime motion execution.
 
 \newpage
 \section{Project Planning}
@@ -463,8 +529,10 @@ The current progress is on schedule. Since the primary focus has been on integra
 
 Progress is slightly behind the planned schedule. The team has procured the required microphone and supporting hardware, but the text-to-speech development is moving slower than expected while effort is directed toward migrating the overall system from simulation to physical hardware.
 
-\subsubsection{Planning Algorithm}
-The current progress is on schedule. Since the primary focus has been on transitioning from simulation to hardware, the planning architecture remains stable while improvements have been made to PDDL generation through enhanced prompt engineering and flexible template-based approaches. The system can now generate more robust task plans for sequential operations, though ongoing work aims to address API usage constraints and improve scalability. Development continues toward seamless integration of high-level planning with the perception and execution modules within the hierarchical system architecture.
+\subsubsection{Planning Process}
+The current progress is on schedule. Based on testing results, the automatic PDDL generation pipeline has been improved by introducing a structured intermediate representation (IR) instead of directly generating PDDL code. This change has reduced syntax errors, improved interpretability, and lowered token usage.
+
+Future work will focus on further refining the system and benchmarking the planning pipeline across different task scenarios to evaluate robustness and efficiency.
 
 
 \subsubsection{Interface with Robot Arm}
@@ -747,6 +815,44 @@ The capabilities of AI image processing are broad and impactful, including accur
 
 The Universal Robots (UR) robotic arm is a widely adopted collaborative robotic manipulator (cobot) designed for flexible deployment in industrial, engineering, and research settings. Unlike traditional industrial robots, UR arms are specifically engineered to operate safely alongside humans without requiring extensive physical barriers, thanks to their integrated safety features, lightweight design, and force-limiting mechanisms. These properties make UR arms particularly suitable for human-robot collaboration in dynamic environments such as manufacturing, assembly, and tool-handling applications.
 From a technical perspective, UR arms employ high-precision servo motors and torque sensors at each joint, enabling six degrees of freedom for dexterous manipulation tasks. Their kinematic flexibility allows execution of both structured and unstructured manipulation tasks, such as grasping, tool usage, and assembly operations. Additionally, UR arms are equipped with programmable interfaces, including graphical user interfaces (GUI), teach pendants, and increasingly, APIs compatible with external AI systems~\cite{urarm}. This enables integration with higher-level control architectures, such as neuro-symbolic AI (NSAI) or large language models (LLMs), for advanced planning, reasoning, and adaptive execution.
+
+\subsection{URScript}
+
+URScript is the native scripting language developed by Universal Robots for programming and controlling their collaborative robotic arms. It provides a textual programming interface that allows users to control robot motion, interact with sensors and I/O devices, and integrate the robot with external software systems. In the Universal Robots ecosystem, programs created through the graphical programming interface \textit{PolyScope} are internally translated into URScript commands, which are then executed by the robot controller~\cite{urscript-docs}. Consequently, URScript represents the fundamental low-level interface used by the controller to perform robot operations.
+
+\subsubsection*{Overall architecture}
+
+Universal Robots systems can be controlled at two main levels: the graphical user interface level through PolyScope, and the script level through URScript~\cite{urscript-manual}. At the script level, programs are written as text-based instructions that are interpreted by the robot controller (URControl). URControl runs as a service on the robot's control computer and executes commands sent either from PolyScope or from an external client over a TCP/IP connection.
+
+URScript programs can therefore be executed in multiple ways:
+\begin{itemize}
+\item Directly within PolyScope using script nodes embedded in a graphical program.
+\item As standalone script files executed by the robot controller.
+\item Remotely from external computers by sending URScript commands over a network socket to the robot controller.
+\end{itemize}
+
+This architecture allows URScript to serve both as a low-level control interface and as an integration mechanism for external software frameworks such as ROS or custom control applications.
+
+\subsubsection*{Core language features}
+
+URScript is designed as a high-level scripting language with a syntax similar to Python, making it relatively easy to learn for users familiar with modern programming languages. The language includes common programming constructs such as variables, functions, and control-flow statements, enabling developers to implement complex robotic behaviours.
+
+\paragraph{Variables and data types}
+URScript supports several basic data types including integers, floating-point numbers, booleans, lists, and poses. Pose data types are particularly important in robotics applications, as they represent the position and orientation of the robot's tool center point (TCP) in Cartesian space.
+
+\paragraph{Control structures}
+The language provides standard control-flow constructs such as \texttt{if} statements, loops, and function definitions. These constructs allow users to create structured programs and reusable subroutines that organize complex robot behaviours.
+
+\paragraph{Motion commands}
+A key feature of URScript is its built-in motion control functions. Commands such as \texttt{movej}, \texttt{movel}, and \texttt{movep} allow the robot to move between poses using joint-space, linear, or process-oriented trajectories. These commands typically include parameters for velocity, acceleration, and blending radius, enabling precise control of robot motion.
+
+\paragraph{I/O and sensor interaction}
+URScript also provides functions for interacting with the robot's digital and analog I/O interfaces. These functions allow the program to read sensor signals, control external devices such as grippers or conveyors, and synchronize robot actions with other equipment in an automated system.
+
+\paragraph{External communication}
+Another important capability of URScript is communication with external systems through network protocols such as TCP/IP sockets or industrial communication standards like Modbus TCP. This functionality enables integration with higher-level control software, PLCs, and robotic frameworks.
+
+Overall, URScript provides a flexible and powerful mechanism for controlling Universal Robots manipulators, enabling both simple task programming and advanced integration with external robotic software systems. In many applications, URScript is used as the underlying execution layer for commands generated by higher-level frameworks such as ROS-based drivers or custom control software.
 
 
 \newpage
