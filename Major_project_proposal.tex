@@ -426,6 +426,23 @@ then composed as
 
 This mathematical treatment ensures that direct URScript execution is kinematically consistent with the original ROS2-side API while removing dependence on the ROS2 driver middleware for runtime motion execution.
 
+\vspace{0.5cm}
+
+In addition to the control system modifications, several hardware improvements were implemented to enhance system robustness and repeatability.
+
+First, the camera mounting setup was mechanically integrated with the base of the UR3e manipulator. The camera stand was rigidly fixed and secured in place to eliminate any relative movement between the camera and the robot base. By establishing a fixed and repeatable spatial relationship, this design removes the need for repeated extrinsic calibration before each operation. As a result, the transformation between the camera frame and the robot base frame remains constant across sessions, improving both system reliability and deployment efficiency.
+
+Furthermore, a custom cable management solution was developed using additive manufacturing. A 3D-printed component was designed and fabricated to securely hold and guide the robot and camera cables along the structure. This component minimizes cable movement during operation, reducing the risk of entanglement, signal interruption, or mechanical interference with the robot’s motion. As shown in Fig.~\ref{fig:camera_mount}
+
+The integration of these hardware modifications contributes to a more stable and user-friendly system, ensuring consistent sensing and execution performance while reducing setup time and operational errors.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.6\linewidth]{images/cable mount.png}
+    \caption{Custom cable mount integrated with the camera stand to secure and organize cables during operation.}
+    \label{fig:camera_mount}
+\end{figure}
+
 \newpage
 \section{Project Planning}
 The project is structured around four primary technical area of concentration exluding any relevant paperwork tasks. These align seamlessly with the core enhancements, which will all be implemented in parallel: \textbf{image processing, speech processing, planning algorithms, and robotic arm integration}. The planned timeline is structured into weekly milestones to ensure iterative progress and early validation
@@ -537,9 +554,9 @@ Future work will focus on further refining the system and benchmarking the plann
 
 \subsubsection{Interface with Robot Arm}
 
-Progress is largely on schedule. The depth camera has been securely mounted at the base of the UR arm and is fully operational. Its spatial position relative to the UR base has been measured, and a consistent coordinate reference frame has been established to support camera-to-robot transformation. The experimental workspace has also been prepared using a controlled visual background to improve perception reliability. 
+Progress is largely on schedule. The depth camera has been securely mounted at the base of the UR arm and is fully operational. Its spatial position relative to the UR base has been measured, and a consistent coordinate reference frame has been established to support camera-to-robot transformation. To further improve repeatability, the camera stand has been rigidly fixed to the robot base, eliminating relative displacement and removing the need for repeated calibration across sessions. The experimental workspace has also been prepared using a controlled visual background to improve perception reliability.
 
-Some minor refinements remain in the mechanical integration. Future improvements include the design and fabrication of custom 3D-printed alignment clamps to enhance mounting stability and repeatability. Additionally, a structured cable management solution and dedicated wire holder are planned to ensure that USB routing does not interfere with the UR arm's range of motion. These enhancements will further improve system robustness and operational safety.
+Mechanical integration has been further refined through the implementation of a structured cable management solution. A custom 3D-printed cable mount has been designed and installed on the camera stand to secure and guide the cabling. This prevents unwanted cable movement and ensures that wiring does not interfere with the UR arm’s range of motion. These improvements enhance system robustness, operational safety, and overall deployment efficiency.
 
 \newpage
 \section{Theory and Technical Backup}
