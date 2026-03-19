@@ -226,7 +226,42 @@ For this project, we aim to contribute to this progress by addressing some of th
 \subsection{The Current Development of the Project}
 
 \subsubsection{Vision}
+Since the main focus of the current phase is integrating and moving the setup from simulation to actual hardware, we have encountered and addressed critical challenges in our vision and grasping pipelines. Initial hardware testing using GraspNet yielded excessively noisy 6-DOF poses for simple planar objects. Because our tasks primarily require top-down grasping along the $xy$-plane, we temporarily shifted to a deterministic Oriented Bounding Box (OBB) approach due to time constraints. 
 
+We implemented a ROS2 node with two primary services (\texttt{/obb/find\_object\_angle\_bb} and \texttt{/obb/find\_object\_angle}) to extract the object centroid ($u,v$) and rotation angle ($\theta$) from an Axis-Aligned Bounding Box (AABB). This guarantees reliable parallel-jaw gripper alignment for current milestones, with plans to revisit GraspNet for complex multi-DOF grasping once the hardware baseline is completely stable.
+
+However, the reliability of this OBB-based planar grasping strategy is fundamentally bottlenecked by the accuracy of the system's spatial mapping. Therefore, a critical component concurrently under review is the \texttt{pixel\_to\_real\_world} coordinate mapping module. 
+
+Initial baseline evaluations of this module revealed significant spatial deviations when altering the operational height of the UR ARM camera. We identified that relying exclusively on an extrinsic matrix derived from a single camera point---without comprehensive spatial calibration---violates geometric best practices. When only a localized camera coordinate is provided, the transformation assumes an ideal parallel plane, failing to account for physical mounting misalignments or depth-dependent lens distortions. To understand the root cause, we evaluated baseline discrepancies across two base heights ($H_b$). At an $H_b$ of $54.41\text{ cm}$, the total distance RMSE was $4.170\text{ cm}$, whereas at an $H_b$ of $67.11\text{ cm}$, it dropped to $1.244\text{ cm}$. Because the mapping error increases substantially when the height is reduced without corresponding dynamic recalibration, we hypothesized that the root cause of the original coordinate displacement is systematic (calibration-based) rather than a multi-resolution or quantization issue.
+Informed by these initial findings, we have improved our calibration approach by benchmarking two distinct mathematical models to rigorously isolate systematic versus quantization errors. Previously, we used a static intrinsic projection matrix based on the standard Pinhole Camera Model, which maps a 3D point $\mathbf{P} = [X, Y, Z]^T$ to a 2D pixel coordinate $\mathbf{p} = [u, v]^T$ using the camera intrinsic matrix $\mathbf{K}$ and extrinsic parameters $[\mathbf{R} | \mathbf{t}]$:
+
+$$s \begin{bmatrix} u \\ v \\ 1 \end{bmatrix} = \mathbf{K} \begin{bmatrix} \mathbf{R} | \mathbf{t} \end{bmatrix} \begin{bmatrix} X \\ Y \\ Z \\ 1 \end{bmatrix}$$
+
+Testing revealed that this approach lacked flexibility at varying heights; any slight misalignment in the rotation matrix $\mathbf{R}$ (e.g., the camera sensor not being perfectly parallel to the workspace) introduces an error that scales non-linearly with $Z$. To address this, we concurrently evaluate the pure intrinsic pipeline against an empirical calibration model. This empirical model introduces an affine-based correction to adjust for localized systematic deviations (scaling, shear, and translation) on the 2D plane:
+
+$$\begin{bmatrix} X_{\text{corr}} \\ Y_{\text{corr}} \end{bmatrix} = \begin{bmatrix} s_x & k \\ -k & s_y \end{bmatrix} \begin{bmatrix} X_{\text{raw}} \\ Y_{\text{raw}} \end{bmatrix} + \begin{bmatrix} t_x \\ t_y \end{bmatrix}$$
+
+To implement both simultaneously without degrading system latency, we developed a weighted hybrid architecture that blends the intrinsic and empirical estimates based on the pixel's distance from the image center, applying a higher weight to the empirical model near the calibration region (center) and prioritizing the intrinsic model at the edge regions where empirical fitting is less reliable.
+
+During testing, we compared the pure intrinsic parameters versus the intrinsic-plus-empirical models at two different Z-axis standoffs. At a camera height of $0.67\text{ m}$, the pure intrinsic model performed best with an RMSE of $1.28\text{ cm}$, while the empirical model overfit and added noise (RMSE of $1.56\text{ cm}$). Conversely, at $0.55\text{ m}$, the empirical correction successfully mitigated systematic distortion, achieving an RMSE of $1.35\text{ cm}$ compared to the intrinsic-only RMSE of $2.35\text{ cm}$. 
+
+To rigorously evaluate the dynamic weighting architecture, we benchmarked the pure intrinsic parameters against the combined intrinsic-plus-empirical model at two different Z-axis standoffs. \textbf{For each test configuration and height, data was collected by sampling 20 manually marked pixel points to compare against their ground-truth real-world coordinates.}
+
+\begin{table}[htbp]
+    \centering
+    \caption{Comparison of RMSE for pure intrinsic versus hybrid models to isolate error sources.}
+    \label{tab:error_isolation}
+    \begin{tabular}{@{}lccl@{}}
+        \toprule
+        \textbf{Camera Height (H)} & \textbf{Intrinsic Only (RMSE)} & \textbf{Intrinsic + Empirical (RMSE)} & \textbf{Observation} \\
+        \midrule
+        0.67 m & 1.28 cm & 1.56 cm & Intrinsic performs best; empirical model overfits/adds noise. \\
+        0.55 m & 2.35 cm & 1.35 cm & Empirical correction successfully mitigates systematic distortion. \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+Our evaluation mathematically isolates and confirms that the displacement is driven by \textbf{systematic error}, not quantization error. This thought process is validated by analyzing the behavior of the error vector $\mathbf{E} = \mathbf{P}_{\text{real}} - \mathbf{P}_{\text{ideal}}$. If the error were quantization-based (limited by pixel density), the metric error on the workspace should theoretically \textit{decrease} or remain constant as the camera moves closer to the target (from $0.67\text{ m}$ to $0.55\text{ m}$) due to an increase in spatial resolution per pixel as shown in Table \ref{tab:error_isolation}
 
 \subsubsection{Speech}
 
@@ -392,6 +427,7 @@ The project is structured around four primary technical area of concentration ex
 \subsection{Current Timeline}
 
 \subsubsection{Image Processing}
+The current progress is on schedule. Having transitioned from simulation to hardware, we refined our perception pipelines by implementing an Oriented Bounding Box (OBB) grasping strategy and a hybrid pixel-to-real-world calibration. We are currently benchmarking real-world accuracy and latency for real-time manipulation. With the foundational integration complete, our next focus is iterative testing to improve system robustness against environmental factors like varying lighting and dynamic workspace conditions.
 
 \subsubsection{Speech Processing}
 
