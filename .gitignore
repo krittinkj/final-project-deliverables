@@ -48,6 +48,8 @@ build/
 *.xml 
 *.fls
 *.bcf 
+Major_project_proposal.synctex(busy)
 *.pyg
 *.pdf
 .DS_Store
+*.synctex
