@@ -313,7 +313,7 @@ The new service returns the top-$k$ bounding boxes ranked by similarity score, w
 
 \subsubsection{Speech}
 
-Progress on the speech module has remained steady but minimal. We have finalized the microphone selection for the project and secured the hardware, and initial development of a text-to-speech (TTS) pipeline is underway to support richer user interaction. Because the core speech recognition functionality reached high accuracy and low latency during semester 1 testing, the team is prioritizing the broader transition from simulation to hardware over additional speech refinements for now.
+Progress on the speech module has remained steady but with meaningful advancement in bidirectional interaction capabilities. We have completed development of a text-to-speech (TTS) pipeline to support richer user feedback. The TTS system is implemented using the open-source \texttt{TTS library}~\cite{coqui-tts}, specifically leveraging the \texttt{tts\_models/en/ljspeech/tacotron2-DDC} model for speech synthesis. The implementation accepts text input, synthesizes speech using the pre-trained Tacotron2 model with DDC (Differential Duration Control), and outputs audio to a file. However, the current implementation is not yet integrated into the ROS2 ecosystem and has a key limitation: it generates audio files that must be played separately rather than streaming audio directly or playing it in real-time. Because the core speech recognition functionality reached high accuracy and low latency during semester 1 testing, and given that TTS remains a secondary feature enhancement, the team is prioritizing the broader transition from simulation to hardware and core perception-planning integration over full TTS integration for now.
 
 \subsubsection{Planning}
 
@@ -579,7 +579,7 @@ The current progress is on schedule. Having transitioned from simulation to hard
 
 \subsubsection{Speech Processing}
 
-Progress is slightly behind the planned schedule. The team has procured the required microphone and supporting hardware, but the text-to-speech development is moving slower than expected while effort is directed toward migrating the overall system from simulation to physical hardware.
+Progress is slightly behind the planned schedule, though not significantly impacting overall project completion. The text-to-speech implementation has been completed using the Tacotron2 model. However, the TTS module is not yet fully integrated into the ROS2 system architecture. The TTS feature itself is considered a "nice to have" enhancement for user interaction, and the current development focus remains on completing the hardware setup, stabilizing the perception pipeline, and integrating the core planning and execution modules. Effort is directed toward migrating the overall system from simulation to physical hardware, with TTS integration deferred to later phases if time permits.
 
 \subsubsection{Planning Process}
 The current progress is on schedule. Based on testing results, the automatic PDDL generation pipeline has been improved by introducing a structured intermediate representation (IR) instead of directly generating PDDL code. This change has reduced syntax errors, improved interpretability, and lowered token usage.
