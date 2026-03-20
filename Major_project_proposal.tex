@@ -264,7 +264,7 @@ For this project, we aim to contribute to this progress by addressing some of th
 \subsubsection{Vision}
 Since the main focus of the current phase is integrating and moving the setup from simulation to actual hardware, we have encountered and addressed critical challenges in our vision and grasping pipelines. Initial hardware testing using GraspNet yielded excessively noisy 6-DOF poses for simple planar objects. Because our tasks primarily require top-down grasping along the $xy$-plane, we temporarily shifted to a deterministic Oriented Bounding Box (OBB) approach due to time constraints. 
 
-We implemented a ROS2 node with two primary services (\texttt{/obb/find\_object\_angle\_bb} and \texttt{/obb/find\_object\_angle}) to extract the object centroid ($u,v$) and rotation angle ($\theta$) from an Axis-Aligned Bounding Box (AABB). This guarantees reliable parallel-jaw gripper alignment for current milestones, with plans to revisit GraspNet for complex multi-DOF grasping once the hardware baseline is completely stable.
+We implemented a ROS2 node with two primary services \\(\texttt{/obb/find\_object\_angle\_bb} and \texttt{/obb/find\_object\_angle}) to extract the object centroid ($u,v$) and rotation angle ($\theta$) from an Axis-Aligned Bounding Box (AABB). This guarantees reliable parallel-jaw gripper alignment for current milestones, with plans to revisit GraspNet for complex multi-DOF grasping once the hardware baseline is completely stable.
 
 However, the reliability of this OBB-based planar grasping strategy is fundamentally bottlenecked by the accuracy of the system's spatial mapping. Therefore, a critical component concurrently under review is the \texttt{pixel\_to\_real\_world} coordinate mapping module. 
 
@@ -287,7 +287,7 @@ To rigorously evaluate the dynamic weighting architecture, we benchmarked the pu
     \centering
     \caption{Comparison of RMSE for pure intrinsic versus hybrid models to isolate error sources.}
     \label{tab:error_isolation}
-    \begin{tabular}{@{}lccl@{}}
+    \begin{tabular}{@{}p{2cm}p{3cm}p{3cm}p{7cm}@{}}
         \toprule
         \textbf{Camera Height (H)} & \textbf{Intrinsic Only (RMSE)} & \textbf{Intrinsic + Empirical (RMSE)} & \textbf{Observation} \\
         \midrule
@@ -298,6 +298,8 @@ To rigorously evaluate the dynamic weighting architecture, we benchmarked the pu
 \end{table}
 
 Our evaluation mathematically isolates and confirms that the displacement is driven by \textbf{systematic error}, not quantization error. This thought process is validated by analyzing the behavior of the error vector $\mathbf{E} = \mathbf{P}_{\text{real}} - \mathbf{P}_{\text{ideal}}$. If the error were quantization-based (limited by pixel density), the metric error on the workspace should theoretically \textit{decrease} or remain constant as the camera moves closer to the target (from $0.67\text{ m}$ to $0.55\text{ m}$) due to an increase in spatial resolution per pixel as shown in Table \ref{tab:error_isolation}
+
+Additional work on the vision module focused on improving scene understanding and handling multiple instances of the same object. Two new ROS2 services were added.
 
 \textbf{Scene Understanding via VQA}
 We implemented \texttt{/vision/vqa}, a service that enables open-ended scene understanding using the Vision-Language Model \texttt{qwen3-vl:8b} running locally via Ollama. The service accepts a natural-language prompt and returns the model’s response based on the live RGB camera feed.
