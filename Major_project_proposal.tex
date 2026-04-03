@@ -257,11 +257,9 @@ The field of robot manipulation and planning through natural language is moving 
 For this project, we aim to contribute to this progress by addressing some of the key limitations in the field. In particular, we will explore extending manipulation capabilities toward more complex object handling based on high-level commands, while also investigating methods for improving robustness and adaptability under real-world uncertainty. We see opportunities in integrating neural and symbolic reasoning, advancing perception systems for richer grounding, and experimenting with human-in-the-loop strategies for preference alignment and safe deployment. By targeting these areas, We hope to push the field closer to building robots that are not only capable and efficient but also trustworthy collaborators in human-centered environments.
 
 \newpage
-\section{Project Concept Development with Core Technology}
+\section{Complete report of the system}
 
-\subsection{The Current Development of the Project}
-
-\subsubsection{Vision}
+\subsection{Vision}
 Since the main focus of the current phase is integrating and moving the setup from simulation to actual hardware, we have encountered and addressed critical challenges in our vision and grasping pipelines. Initial hardware testing using GraspNet yielded excessively noisy 6-DOF poses for simple planar objects. Because our tasks primarily require top-down grasping along the $xy$-plane, we temporarily shifted to a deterministic Oriented Bounding Box (OBB) approach due to time constraints. 
 
 We implemented a ROS2 node with two primary services \\(\texttt{/obb/find\_object\_angle\_bb} and \texttt{/obb/find\_object\_angle}) to extract the object centroid ($u,v$) and rotation angle ($\theta$) from an Axis-Aligned Bounding Box (AABB). This guarantees reliable parallel-jaw gripper alignment for current milestones, with plans to revisit GraspNet for complex multi-DOF grasping once the hardware baseline is completely stable.
@@ -311,11 +309,11 @@ We added \texttt{/vision/find\_multi\_object}, extending the existing \texttt{/v
 
 The new service returns the top-$k$ bounding boxes ranked by similarity score, where $k$ is specified in the request. This allows the system to detect multiple instances of the same object in the workspace.
 
-\subsubsection{Speech}
+\subsection{Speech}
 
 Progress on the speech module has remained steady but with meaningful advancement in bidirectional interaction capabilities. We have completed development of a text-to-speech (TTS) pipeline to support richer user feedback. The TTS system is implemented using the open-source \texttt{TTS library}~\cite{coqui-tts}, specifically leveraging the \texttt{tts\_models/en/ljspeech/tacotron2-DDC} model for speech synthesis. The implementation accepts text input, synthesizes speech using the pre-trained Tacotron2 model with DDC (Differential Duration Control), and outputs audio to a file. However, the current implementation is not yet integrated into the ROS2 ecosystem and has a key limitation: it generates audio files that must be played separately rather than streaming audio directly or playing it in real-time. Because the core speech recognition functionality reached high accuracy and low latency during semester 1 testing, and given that TTS remains a secondary feature enhancement, the team is prioritizing the broader transition from simulation to hardware and core perception-planning integration over full TTS integration for now.
 
-\subsubsection{Planning}
+\subsection{Planning}
 
 Our recent work in planning focuses on improving the robustness and efficiency of the automatic PDDL generation pipeline used by the high-level planner. Initially, the system relied on a large language model (LLM) to directly generate both the PDDL \texttt{domain} and \texttt{problem} files from a natural language instruction. While this approach demonstrated the feasibility of natural language to PDDL translation, it introduced several practical challenges.
 
@@ -396,7 +394,7 @@ Preliminary evaluation indicates that this redesign significantly reduces syntax
 
 Overall, this approach increases reliability, efficiency, and system control while preserving the flexibility of natural language task specification.
 
-\subsubsection{Hardware}
+\subsection{Hardware}
 
 During system testing, we encountered an issue with the official UR ROS2 driver used to control the UR3e arm. After investigating the problem, we found that it corresponds to an open bug in the driver that affects the reliability of motion execution~\cite{ur-driver-issue}. Because the issue remains unresolved and the timeline for a fix is uncertain, relying solely on the driver poses a potential risk to the stability of the system.
 
