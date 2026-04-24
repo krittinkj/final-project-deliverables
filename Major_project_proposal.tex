@@ -313,7 +313,21 @@ The new service returns the top-$k$ bounding boxes ranked by similarity score, w
 
 \subsection{Speech}
 
-Progress on the speech module has remained steady but with meaningful advancement in bidirectional interaction capabilities. We have completed development of a text-to-speech (TTS) pipeline to support richer user feedback. The TTS system is implemented using the open-source \texttt{TTS library}~\cite{coqui-tts}, specifically leveraging the \texttt{tts\_models/en/ljspeech/tacotron2-DDC} model for speech synthesis. The implementation accepts text input, synthesizes speech using the pre-trained Tacotron2 model with DDC (Differential Duration Control), and outputs audio to a file. However, the current implementation is not yet integrated into the ROS2 ecosystem and has a key limitation: it generates audio files that must be played separately rather than streaming audio directly or playing it in real-time. Because the core speech recognition functionality reached high accuracy and low latency during semester 1 testing, and given that TTS remains a secondary feature enhancement, the team is prioritizing the broader transition from simulation to hardware and core perception-planning integration over full TTS integration for now.
+The speech module provides full bidirectional voice interaction: the system accepts natural language commands via automatic speech recognition (ASR) and responds verbally through a text-to-speech (TTS) pipeline. Both components are implemented as independent ROS2 nodes and communicate with the rest of the system through standard ROS2 topics.
+
+\subsubsection{Automatic Speech Recognition (ASR)}
+The ASR node continuously captures live audio, transcribes it in real-time, and publishes recognised commands to the planning node. A command is only forwarded when it ends with the deactivation keyword ``execute'', and an emergency stop can be triggered at any time by saying ``STOP'', which is deactivated by saying ``OKAY''. This design ensures safe and controlled human-to-robot voice input.
+
+\subsubsection{Text-to-Speech (TTS)}
+The TTS module has been completed and is fully integrated into the ROS2 system~\cite{tts-ros2}. It is implemented as a dedicated ROS2 node, \texttt{tts\_topic\_node}, using the open-source \texttt{Coqui TTS} library~\cite{coqui-tts} with the \texttt{tts\_models/en/ljspeech/vits} neural speech synthesis model. VITS (Variational Inference with adversarial learning for end-to-end Text-to-Speech) is a high-quality, end-to-end neural TTS engine that produces natural-sounding speech without requiring a separate acoustic model or vocoder. The model runs completely offline and is automatically downloaded on first launch and cached locally.
+
+The TTS pipeline operates as follows:
+
+\begin{center}
+\texttt{/tts topic} $\rightarrow$ \texttt{tts\_topic\_node} $\rightarrow$ \texttt{Coqui TTS (VITS)} $\rightarrow$ \texttt{aplay} $\rightarrow$ speakers
+\end{center}
+
+Any ROS2 node can trigger spoken output by publishing a \texttt{std\_msgs/msg/String} message to the \texttt{/tts} topic. The \texttt{tts\_topic\_node} subscribes to this topic, synthesizes the text into a WAV audio buffer using the VITS model, and immediately plays it through the system speakers via the ALSA utility \texttt{aplay}. Audio is played in real-time without writing intermediate files to disk, eliminating the latency of the previous file-based approach. The package is built within the standard ROS2 Humble workspace using \texttt{colcon build}.
 
 \subsection{Planning}
 
@@ -579,7 +593,7 @@ The current progress is on schedule. Having transitioned from simulation to hard
 
 \subsubsection{Speech Processing}
 
-Progress is slightly behind the planned schedule, though not significantly impacting overall project completion. The text-to-speech implementation has been completed using the Tacotron2 model. However, the TTS module is not yet fully integrated into the ROS2 system architecture. The TTS feature itself is considered a "nice to have" enhancement for user interaction, and the current development focus remains on completing the hardware setup, stabilizing the perception pipeline, and integrating the core planning and execution modules. Effort is directed toward migrating the overall system from simulation to physical hardware, with TTS integration deferred to later phases if time permits.
+Both ASR and TTS components are on schedule and fully complete. The ASR node has been operational since semester 1, achieving a mean command recognition accuracy of 97.9\% across all participants. The TTS module has now been completed and integrated into the ROS2 system. The \texttt{tts\_topic\_node} subscribes to the \texttt{/tts} topic, synthesizes received text using the Coqui TTS VITS model, and plays the resulting audio in real-time through the system speakers via the ALSA utility \texttt{aplay}. The robot can now provide verbal feedback—confirming received commands and notifying the user upon task completion—closing the bidirectional interaction loop between the human operator and the robot.
 
 \subsubsection{Planning Process}
 The current progress is on schedule. Based on testing results, the automatic PDDL generation pipeline has been improved by introducing a structured intermediate representation (IR) instead of directly generating PDDL code. This change has reduced syntax errors, improved interpretability, and lowered token usage.
@@ -1064,6 +1078,10 @@ Our Pixel-to-Real service achieves an RMSE of \textbf{0.05365\,m}, demonstrating
 
 \subsection{Speech}
 
+The speech module encompasses two components: Automatic Speech Recognition (ASR) for receiving voice commands, and Text-to-Speech (TTS) for providing spoken feedback. Both have been implemented, evaluated, and fully integrated into the ROS2 system.
+
+\subsubsection{Automatic Speech Recognition}
+
 The ASR system has been fully integrated as a ROS2 node, providing real-time speech-to-text functionality, deactivation word recognition, and an emergency stop mechanism. The node continuously captures live audio streams, transcribes commands in real time, and publishes recognized sentences to the planning node only if the sentence ends with the deactivation word ``execute.'' The emergency stop allows immediate halting of robot motion with the command ``STOP'' and can be deactivated using the word ``OKAY.'' This workflow ensures responsive, safe, and controlled interaction between the human operator and the robot.
 
 \subsubsection{Experimentation and Evaluation}
@@ -1130,6 +1148,10 @@ The resulting confidence interval is:
 The results demonstrate that the ASR module achieves a high recognition success rate across all participants, with a mean accuracy of approximately 97.9\%. Simple commands were consistently recognized with 100\% success, while a few long multi-step instructions occasionally produced a single misrecognition. Both the emergency stop word (``STOP'') and the deactivation word (``execute'') were detected reliably in all trials.
 
 Overall, these findings confirm that the ASR system accurately interprets natural language instructions, robustly transmits commands to the planning node, and ensures safe human–robot interaction for real-time manipulation tasks.
+
+\subsubsection{Text-to-Speech}
+
+The TTS module has been completed and integrated into the ROS2 system as a standalone \texttt{tts\_topic\_node}~\cite{tts-ros2}. The node uses the Coqui TTS VITS model~\cite{coqui-tts} to synthesize natural-sounding speech entirely offline, then plays it in real-time through the system speakers via \texttt{aplay}. Any node in the system can trigger a spoken response by publishing a \texttt{std\_msgs/msg/String} message to the \texttt{/tts} topic. This enables the robot to audibly confirm received commands, report task completion, and communicate status updates to the operator, completing the bidirectional interaction loop between the human and the robot.
 
 \subsection{Planning}
 
@@ -1253,9 +1275,12 @@ Finally, while pixel-to-real conversion provides reasonable accuracy in controll
 For future development, these limitations could be addressed by incorporating multi-view or higher-resolution sensors, improving depth filtering and denoising, extending GraspNet and scene understanding models to handle irregular objects, and integrating temporal smoothing or tracking to enhance robustness in dynamic real-world scenarios. These improvements aim to increase perception reliability, grasp success, and overall system usability in complex and unstructured environments.
 
 \subsection{Speech}
-Despite the successful integration of the ASR module, several limitations remain. Currently, the system supports only one deactivation word ``EXECUTE'' which must appear at the end of a spoken command for it to be sent to the planning node. Commands without this keyword are ignored, which can reduce flexibility in natural speech interactions. Similarly, the emergency stop feature currently recognizes only the word ``STOP'' to immediately halt robot operations, and can only be deactivated by saying ``OKAY.'' While these constraints ensure reliability and safety, they also limit the diversity of voice inputs the system can handle.
 
-For future development, the ASR system will be enhanced with a feedback mechanism that enables the robot to verbally confirm received commands and notify the user when tasks are completed. This interactive feedback loop aims to improve user awareness, communication transparency, and overall usability in real-world human–robot collaboration.
+The speech module is complete. Both the ASR and TTS components have been successfully implemented and integrated into the ROS2 system. The ASR node reliably captures and interprets voice commands with a mean accuracy of 97.9\%, while the TTS node enables the robot to respond verbally in real-time to close the interaction loop.
+
+The remaining limitation lies in the rigidity of the command protocol. The system requires commands to end with the fixed keyword ``EXECUTE'' to be forwarded to the planning node, and only the exact words ``STOP'' and ``OKAY'' are recognised for emergency control. While this ensures reliability, it reduces flexibility in natural speech interaction.
+
+For future development, the ASR module will be extended to support a broader vocabulary of activation and deactivation keywords, and to handle more natural, free-form speech patterns, further improving the robustness and usability of the human–robot interaction interface.
 \subsection{Planning}
 Despite the successful implementation and evaluation of the hierarchical planning system, several limitations remain that present opportunities for improvement in future development.
 
